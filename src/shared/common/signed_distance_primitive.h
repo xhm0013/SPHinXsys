@@ -31,7 +31,8 @@
 #ifndef SIGNED_DISTANCE_PRIMITIVE_H
 #define SIGNED_DISTANCE_PRIMITIVE_H
 
-#include <base_data_type.h>
+#include "base_data_type.h"
+#include "scalar_functions.h"
 
 namespace SPH
 {
@@ -44,7 +45,6 @@ class SDBall
 
   public:
     explicit SDBall(Real radius) : radius_(radius) {}
-    Real getParameters() const { return radius_; }
     void setParameters(Real radius) { radius_ = radius; }
     template <typename VecType>
     Real operator()(const VecType &point) const
@@ -60,12 +60,32 @@ class SDBox
 
   public:
     explicit SDBox(const Eigen::Matrix<Real, N, 1> &halfsize) : halfsize_(halfsize) {}
-    Eigen::Matrix<Real, N, 1> getParameters() const { return halfsize_; }
     void setParameters(const Eigen::Matrix<Real, N, 1> &halfsize) { halfsize_ = halfsize; }
     Real operator()(const Eigen::Matrix<Real, N, 1> &point) const
     {
         Eigen::Matrix<Real, N, 1> d = point.cwiseAbs() - halfsize_;
         return d.cwiseMax(Eigen::Matrix<Real, N, 1>::Zero()).norm() + SMIN(d.maxCoeff(), 0.0);
+    }
+};
+
+template <typename InputType, typename ExtendType>
+class SDExtend
+{
+    InputType input_;
+    ExtendType extended_;
+
+  public:
+    explicit SDExtend(const InputType &input, const ExtendType &extended) : input_(input), extended_(extended) {}
+    template <typename... InputArgs, typename... ExtendArgs>
+    void setParameters(const InputArgs &...inputArgs, const ExtendArgs &...extendedArgs)
+    {
+        input_.setParameters(inputArgs...);
+        extended_.setParameters(extendedArgs...);
+    }
+    template <typename VecType>
+    Real operator()(const VecType &point) const
+    {
+        return extended_(input_, point);
     }
 };
 
@@ -75,13 +95,9 @@ class SDRound
 
   public:
     explicit SDRound(Real radius) : radius_(radius) {}
-    Real getParameters() const { return radius_; }
     void setParameters(Real radius) { radius_ = radius; }
-    template <typename VecType, typename Input>
-    Real operator()(const VecType &point, const Input &input) const
-    {
-        return input(point) - radius_;
-    }
+    template <typename InputType, typename VecType>
+    Real operator()(const InputType &input, const VecType &point) const { return input(point) - radius_; }
 };
 
 class SDOnion
@@ -90,13 +106,9 @@ class SDOnion
 
   public:
     explicit SDOnion(Real radius) : radius_(radius) {}
-    Real getParameters() const { return radius_; }
     void setParameters(Real radius) { radius_ = radius; }
-    template <typename VecType, typename Input>
-    Real operator()(const VecType &point, const Input &input) const
-    {
-        return ABS(input(point)) - radius_;
-    }
+    template <typename InputType, typename VecType>
+    Real operator()(const InputType &input, const VecType &point) const { return ABS(input(point)) - radius_; }
 };
 
 class SDChamfer
@@ -105,12 +117,12 @@ class SDChamfer
 
   public:
     explicit SDChamfer(Real chamfer_size) : chamfer_size_(chamfer_size) {}
-    Real getParameters() const { return chamfer_size_; }
     void setParameters(Real chamfer_size) { chamfer_size_ = chamfer_size; }
-    template <typename VecType, typename Input>
-    Real operator()(const VecType &point, const Input &input) const
+    template <typename InputType, typename VecType>
+    Real operator()(const InputType &input, const VecType &point) const
     {
-        return input(point) + chamfer_size_ - sqrt(chamfer_size_ * chamfer_size_ + input(point) * input(point));
+        Real sd = input(point);
+        return sd + chamfer_size_ - sqrt(chamfer_size_ * chamfer_size_ + sd * sd);
     }
 };
 
@@ -122,8 +134,8 @@ class SDScale
     explicit SDScale(Real scale_factor) : scale_factor_(scale_factor) {}
     Real getParameters() const { return scale_factor_; }
     void setParameters(Real scale_factor) { scale_factor_ = scale_factor; }
-    template <typename VecType, typename Input>
-    Real operator()(const VecType &point, const Input &input) const
+    template <typename InputType, typename VecType>
+    Real operator()(const InputType &input, const VecType &point) const
     {
         return input(point / scale_factor_) * scale_factor_;
     }
@@ -250,94 +262,119 @@ class SDRepeat
 //----------------------------------------------------------------------
 // 3D geometric primitives for signed distance function definition
 //----------------------------------------------------------------------
-class SDRoundedBox
-{
-    template <typename VecType>
-    Real operator()(const VecType &point, const VecType &halfsize, Real radius) const
-    {
-        VecType d = point.cwiseAbs() - halfsize + VecType::Constant(radius);
-        return d.cwiseMax(VecType::Zero()).norm() - radius + SMIN(d.maxCoeff(), 0.0) - radius;
-    }
-};
-
 class SDCylinder
 {
-    Real operator()(const Vec3d &point, Real halflength, Real radius) const
-    {
-        Real axial = point[0];
-        Real radial_distance = point.tail(2).norm();
-        Real dh = ABS(axial) - halflength;
-        Real dr = radial_distance - radius;
-        return SMAX(dh, dr);
-    }
-};
+    Real halflength_, radius_;
 
-class SDRoundedCylinder
-{
-    Real operator()(const Vec3d &point, Real halflength, Real radius) const
+  public:
+    explicit SDCylinder(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+
+    void setParameters(Real halflength, Real radius)
+    {
+        halflength_ = halflength;
+        radius_ = radius;
+    }
+
+    Real operator()(const Vec3d &point) const
     {
         Real axial = point[0];
         Real radial_distance = point.tail(2).norm();
-        Real dh = ABS(axial) - halflength + radius;
-        Real dr = radial_distance - radius;
-        return SMAX(dh, dr) - radius;
+        Real dh = ABS(axial) - halflength_;
+        Real dr = radial_distance - radius_;
+        return SMAX(dh, dr);
     }
 };
 
 class SDCapsule
 {
-    Real operator()(const Vec3d &point, Real halflength, Real radius) const
+    Real halflength_, radius_;
+
+  public:
+    explicit SDCapsule(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+    void setParameters(Real halflength, Real radius)
+    {
+        halflength_ = halflength;
+        radius_ = radius;
+    }
+    Real operator()(const Vec3d &point) const
     {
         Real axial = point[0];
         Real radial_distance = point.tail(2).norm();
         if (axial < 0.0)
-            return (point - Vec3d(0.0, 0.0, 0.0)).norm() - radius; // bottom hemisphere
-        else if (axial > halflength)
-            return (point - Vec3d(halflength, 0.0, 0.0)).norm() - radius; // top hemisphere
+            return (point - Vec3d(0.0, 0.0, 0.0)).norm() - radius_; // bottom hemisphere
+        else if (axial > halflength_)
+            return (point - Vec3d(halflength_, 0.0, 0.0)).norm() - radius_; // top hemisphere
         else
-            return radial_distance - radius; // cylindrical part
+            return radial_distance - radius_; // cylindrical part
     }
 };
 
 class SDCone
 {
-    Real operator()(const Vec3d &point, Real halflength, Real radius) const
+    Real halflength_, radius_;
+
+  public:
+    explicit SDCone(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+    void setParameters(Real halflength, Real radius)
+    {
+        halflength_ = halflength;
+        radius_ = radius;
+    }
+    Real operator()(const Vec3d &point) const
     {
         Real axial = point[0];
         Real radial_distance = point.tail(2).norm();
-        if (axial < 0.0 || axial > halflength)
-            return std::numeric_limits<Real>::max(); // outside the cone's height
-        Real local_radius = (halflength - axial) / halflength * radius;
+        if (axial < 0.0 || axial > halflength_)
+            return MaxReal; // outside the cone's height
+        Real local_radius = (halflength_ - axial) / halflength_ * radius_;
         return radial_distance - local_radius;
     }
 };
 
 class SDRoundedCone
 {
-    Real operator()(const Vec3d &point, Real halflength, Real radius) const
+    Real halflength_, radius_;
+
+  public:
+    explicit SDRoundedCone(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+    void setParameters(Real halflength, Real radius)
+    {
+        halflength_ = halflength;
+        radius_ = radius;
+    }
+    Real operator()(const Vec3d &point) const
     {
         Real axial = point[0];
         Real radial_distance = point.tail(2).norm();
-        if (axial < 0.0 || axial > halflength)
-            return std::numeric_limits<Real>::max(); // outside the cone's height
-        Real local_radius = (halflength - axial) / halflength * radius;
-        return radial_distance - local_radius + radius;
+        if (axial < 0.0 || axial > halflength_)
+            return MaxReal; // outside the cone's height
+        Real local_radius = (halflength_ - axial) / halflength_ * radius_;
+        return radial_distance - local_radius + radius_;
     }
 };
 
 class SDCappedCone
 {
-    Real operator()(const Vec3d &point, Real halflength, Real radius) const
+    Real halflength_, radius_;
+
+  public:
+    explicit SDCappedCone(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+    void setParameters(Real halflength, Real radius)
+    {
+        halflength_ = halflength;
+        radius_ = radius;
+    }
+    Real operator()(const Vec3d &point) const
     {
         Real axial = point[0];
         Real radial_distance = point.tail(2).norm();
         if (axial < 0.0)
-            return (point - Vec3d(0.0, 0.0, 0.0)).norm() - radius; // bottom hemisphere
-        else if (axial > halflength)
-            return (point - Vec3d(halflength, 0.0, 0.0)).norm() - radius; // top hemisphere
+            return (point - Vec3d(0.0, 0.0, 0.0)).norm() - radius_; // bottom hemisphere
+        else if (axial > halflength_)
+            return (point - Vec3d(halflength_, 0.0, 0.0)).norm() - radius_; // top hemisphere
         else
         {
-            Real local_radius = (halflength - axial) / halflength * radius;
+            Real local_radius = (halflength_ - axial) / halflength_ * radius_;
             return radial_distance - local_radius; // conical part
         }
     }
@@ -347,64 +384,109 @@ class SDCappedCone
 //----------------------------------------------------------------------
 class SDTrapezoid
 {
-    Real operator()(const Vec2d &point, Real halflength, Real top_halfwidth, Real bottom_halfwidth) const
+    Real halflength_, top_halfwidth_, bottom_halfwidth_;
+
+  public:
+    explicit SDTrapezoid(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
+        : halflength_(halflength), top_halfwidth_(top_halfwidth), bottom_halfwidth_(bottom_halfwidth) {}
+    void setParameters(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
+    {
+        halflength_ = halflength;
+        top_halfwidth_ = top_halfwidth;
+        bottom_halfwidth_ = bottom_halfwidth;
+    }
+    Real operator()(const Vec2d &point) const
     {
         Real axial = point[0];
         Real lateral = point[1];
-        if (axial < 0.0 || axial > halflength)
-            return std::numeric_limits<Real>::max(); // outside the trapezoid's height
-        Real local_halfwidth = (halflength - axial) / halflength * top_halfwidth + axial / halflength * bottom_halfwidth;
+        if (axial < 0.0 || axial > halflength_)
+            return MaxReal; // outside the trapezoid's height
+        Real local_halfwidth = (halflength_ - axial) / halflength_ * top_halfwidth_ + axial / halflength_ * bottom_halfwidth_;
         return ABS(lateral) - local_halfwidth;
     }
 };
 
 class SDParallelogram
 {
-    Real operator()(const Vec2d &point, Real halflength, Real halfwidth, Real skew) const
+    Real halflength_, halfwidth_, skew_;
+
+  public:
+    explicit SDParallelogram(Real halflength, Real halfwidth, Real skew)
+        : halflength_(halflength), halfwidth_(halfwidth), skew_(skew) {}
+    Real operator()(const Vec2d &point) const
     {
         Real axial = point[0];
         Real lateral = point[1];
-        if (axial < 0.0 || axial > halflength)
-            return std::numeric_limits<Real>::max(); // outside the parallelogram's height
-        Real local_halfwidth = halfwidth + skew * (axial / halflength - 0.5);
+        if (axial < 0.0 || axial > halflength_)
+            return MaxReal; // outside the parallelogram's height
+        Real local_halfwidth = halfwidth_ + skew_ * (axial / halflength_ - 0.5);
         return ABS(lateral) - local_halfwidth;
     }
 };
 
 class SDEquilateralTriangle
 {
-    Real operator()(const Vec2d &point, Real halflength) const
+    Real halflength_;
+
+  public:
+    explicit SDEquilateralTriangle(Real halflength) : halflength_(halflength) {}
+    void setParameters(Real halflength) { halflength_ = halflength; }
+    Real operator()(const Vec2d &point) const
     {
         Real axial = point[0];
         Real lateral = point[1];
-        if (axial < 0.0 || axial > halflength)
-            return std::numeric_limits<Real>::max(); // outside the triangle's height
-        Real local_halfwidth = (halflength - axial) / halflength * 0.5 * halflength;
+        if (axial < 0.0 || axial > halflength_)
+            return MaxReal; // outside the triangle's height
+        Real local_halfwidth = (halflength_ - axial) / halflength_ * 0.5 * halflength_ * std::sqrt(3.0);
         return ABS(lateral) - local_halfwidth;
     }
 };
 
 class SDIsoscelesTriangle
 {
-    Real operator()(const Vec2d &point, Real halflength, Real top_halfwidth, Real bottom_halfwidth) const
+    Real halflength_, top_halfwidth_, bottom_halfwidth_;
+
+  public:
+    explicit SDIsoscelesTriangle(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
+        : halflength_(halflength), top_halfwidth_(top_halfwidth), bottom_halfwidth_(bottom_halfwidth) {}
+    void setParameters(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
+    {
+        halflength_ = halflength;
+        top_halfwidth_ = top_halfwidth;
+        bottom_halfwidth_ = bottom_halfwidth;
+    }
+
+    Real operator()(const Vec2d &point) const
     {
         Real axial = point[0];
         Real lateral = point[1];
-        if (axial < 0.0 || axial > halflength)
-            return std::numeric_limits<Real>::max(); // outside the triangle's height
-        Real local_halfwidth = (halflength - axial) / halflength * top_halfwidth + axial / halflength * bottom_halfwidth;
+        if (axial < 0.0 || axial > halflength_)
+            return MaxReal; // outside the triangle's height
+        Real local_halfwidth = (halflength_ - axial) / halflength_ * top_halfwidth_ + axial / halflength_ * bottom_halfwidth_;
         return ABS(lateral) - local_halfwidth;
     }
 };
 
 class SDTriangle
 {
-    Real operator()(const Vec2d &point, const Vec2d &vertex1, const Vec2d &vertex2, const Vec2d &vertex3) const
+    Vec2d vertex1_, vertex2_, vertex3_;
+
+  public:
+    explicit SDTriangle(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3)
+        : vertex1_(v1), vertex2_(v2), vertex3_(v3) {}
+    void setParameters(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3)
+    {
+        vertex1_ = v1;
+        vertex2_ = v2;
+        vertex3_ = v3;
+    }
+
+    Real operator()(const Vec2d &point) const
     {
         // Barycentric technique for signed distance to triangle
-        Vec2d v0 = vertex2 - vertex1;
-        Vec2d v1 = vertex3 - vertex1;
-        Vec2d v2 = point - vertex1;
+        Vec2d v0 = vertex2_ - vertex1_;
+        Vec2d v1 = vertex3_ - vertex1_;
+        Vec2d v2 = point - vertex1_;
 
         Real d00 = v0.dot(v0);
         Real d01 = v0.dot(v1);
@@ -414,7 +496,7 @@ class SDTriangle
 
         Real denom = d00 * d11 - d01 * d01;
         if (denom == 0.0)
-            return std::numeric_limits<Real>::max(); // Degenerate triangle
+            return MaxReal; // Degenerate triangle
 
         Real inv_denom = 1.0 / denom;
         Real u = (d11 * d20 - d01 * d21) * inv_denom;
@@ -429,30 +511,50 @@ class SDTriangle
 
 class SDQuadrilateral
 {
-    Real operator()(const Vec2d &point, const Vec2d &vertex1, const Vec2d &vertex2, const Vec2d &vertex3, const Vec2d &vertex4) const
+    Vec2d vertex1_, vertex2_, vertex3_, vertex4_;
+
+  public:
+    SDQuadrilateral(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3, const Vec2d &v4)
+        : vertex1_(v1), vertex2_(v2), vertex3_(v3), vertex4_(v4) {}
+    void setParameters(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3, const Vec2d &v4)
     {
-        // Approximate signed distance to quadrilateral by taking the minimum distance to its edges
-        SDEquilateralTriangle tri1;
-        SDEquilateralTriangle tri2;
-        Real d1 = tri1(point, vertex1, vertex2, vertex3);
-        Real d2 = tri2(point, vertex1, vertex3, vertex4);
+        vertex1_ = v1;
+        vertex2_ = v2;
+        vertex3_ = v3;
+        vertex4_ = v4;
+    }
+    Real operator()(const Vec2d &point) const
+    {
+        SDTriangle tri1(vertex1_, vertex2_, vertex3_);
+        SDTriangle tri2(vertex1_, vertex3_, vertex4_);
+        Real d1 = tri1(point);
+        Real d2 = tri2(point);
         return SMIN(d1, d2);
     }
 };
 
 class SDPolygon
 {
-    Real operator()(const Vec2d &point, const std::vector<Vec2d> &vertices) const
+    std::vector<Vec2d> vertices_;
+
+  public:
+    explicit SDPolygon(const std::vector<Vec2d> &vertices) : vertices_(vertices) {}
+    void setParameters(const std::vector<Vec2d> &vertices)
+    {
+        vertices_ = vertices;
+    }
+
+    Real operator()(const Vec2d &point) const
     {
         // Approximate signed distance to polygon by taking the minimum distance to its edges
-        Real min_distance = std::numeric_limits<Real>::max();
-        size_t n = vertices.size();
+        Real min_distance = MaxReal;
+        size_t n = vertices_.size();
         for (size_t i = 0; i < n; ++i)
         {
-            Vec2d v1 = vertices[i];
-            Vec2d v2 = vertices[(i + 1) % n];
-            SDEquilateralTriangle tri;
-            Real d = tri(point, v1, v2, point); // Treat edge as a degenerate triangle
+            Vec2d v1 = vertices_[i];
+            Vec2d v2 = vertices_[(i + 1) % n];
+            SDTriangle tri(v1, v2, point);
+            Real d = tri(point);
             min_distance = SMIN(min_distance, d);
         }
         return min_distance;
@@ -461,79 +563,141 @@ class SDPolygon
 
 class SDPie
 {
-    Real operator()(const Vec2d &point, Real radius, Real start_angle, Real end_angle) const
+    Real radius_, start_angle_, end_angle_;
+
+  public:
+    explicit SDPie(Real radius, Real start_angle, Real end_angle)
+        : radius_(radius), start_angle_(start_angle), end_angle_(end_angle) {}
+    void setParameters(Real radius, Real start_angle, Real end_angle)
+    {
+        radius_ = radius;
+        start_angle_ = start_angle;
+        end_angle_ = end_angle;
+    }
+    Real operator()(const Vec2d &point) const
     {
         Real angle = std::atan2(point[1], point[0]);
         if (angle < 0.0)
             angle += 2.0 * M_PI; // Normalize angle to [0, 2π]
-        if (angle >= start_angle && angle <= end_angle)
-            return point.norm() - radius; // Inside the pie slice
+        if (angle >= start_angle_ && angle <= end_angle_)
+            return point.norm() - radius_; // Inside the pie slice
         else
-            return std::numeric_limits<Real>::max(); // Outside the pie slice
+            return MaxReal; // Outside the pie slice
     }
 };
 
 class SDAnnulus
 {
-    Real operator()(const Vec2d &point, Real inner_radius, Real outer_radius) const
+    Real inner_radius_, outer_radius_;
+
+  public:
+    explicit SDAnnulus(Real inner_radius, Real outer_radius)
+        : inner_radius_(inner_radius), outer_radius_(outer_radius) {}
+    void setParameters(Real inner_radius, Real outer_radius)
+    {
+        inner_radius_ = inner_radius;
+        outer_radius_ = outer_radius;
+    }
+    Real operator()(const Vec2d &point) const
     {
         Real r = point.norm();
-        if (r < inner_radius)
-            return inner_radius - r; // Inside the inner circle
-        else if (r > outer_radius)
-            return r - outer_radius; // Outside the outer circle
+        if (r < inner_radius_)
+            return inner_radius_ - r; // Inside the inner circle
+        else if (r > outer_radius_)
+            return r - outer_radius_; // Outside the outer circle
         else
-            return -SMIN(r - inner_radius, outer_radius - r); // Inside the annulus
+            return -SMIN(r - inner_radius_, outer_radius_ - r); // Inside the annulus
     }
 };
 
 class SDCutDisk
 {
-    Real operator()(const Vec2d &point, Real radius, Real cut_angle) const
+    Real radius_, cut_angle_;
+
+  public:
+    explicit SDCutDisk(Real radius, Real cut_angle)
+        : radius_(radius), cut_angle_(cut_angle) {}
+    void setParameters(Real radius, Real cut_angle)
+    {
+        radius_ = radius;
+        cut_angle_ = cut_angle;
+    }
+    Real operator()(const Vec2d &point) const
     {
         Real angle = std::atan2(point[1], point[0]);
         if (angle < 0.0)
             angle += 2.0 * M_PI; // Normalize angle to [0, 2π]
-        if (angle <= cut_angle)
-            return point.norm() - radius; // Inside the cut disk
+        if (angle <= cut_angle_)
+            return point.norm() - radius_; // Inside the cut disk
         else
-            return std::numeric_limits<Real>::max(); // Outside the cut disk
+            return MaxReal; // Outside the cut disk
     }
 };
 
 class SDWedge
 {
-    Real operator()(const Vec2d &point, Real radius, Real start_angle, Real end_angle) const
+    Real radius_, start_angle_, end_angle_;
+
+  public:
+    explicit SDWedge(Real radius, Real start_angle, Real end_angle)
+        : radius_(radius), start_angle_(start_angle), end_angle_(end_angle) {}
+    void setParameters(Real radius, Real start_angle, Real end_angle)
+    {
+        radius_ = radius;
+        start_angle_ = start_angle;
+        end_angle_ = end_angle;
+    }
+    Real operator()(const Vec2d &point) const
     {
         Real angle = std::atan2(point[1], point[0]);
         if (angle < 0.0)
             angle += 2.0 * M_PI; // Normalize angle to [0, 2π]
-        if (angle >= start_angle && angle <= end_angle)
-            return point.norm() - radius; // Inside the wedge
+        if (angle >= start_angle_ && angle <= end_angle_)
+            return point.norm() - radius_; // Inside the wedge
         else
-            return std::numeric_limits<Real>::max(); // Outside the wedge
+            return MaxReal; // Outside the wedge
     }
 };
 
 class SDArc
 {
-    Real operator()(const Vec2d &point, Real radius, Real start_angle, Real end_angle) const
+    Real radius_, start_angle_, end_angle_;
+
+  public:
+    explicit SDArc(Real radius, Real start_angle, Real end_angle)
+        : radius_(radius), start_angle_(start_angle), end_angle_(end_angle) {}
+    void setParameters(Real radius, Real start_angle, Real end_angle)
+    {
+        radius_ = radius;
+        start_angle_ = start_angle;
+        end_angle_ = end_angle;
+    }
+    Real operator()(const Vec2d &point) const
     {
         Real angle = std::atan2(point[1], point[0]);
         if (angle < 0.0)
             angle += 2.0 * M_PI; // Normalize angle to [0, 2π]
-        if (angle >= start_angle && angle <= end_angle)
-            return point.norm() - radius; // Inside the arc
+        if (angle >= start_angle_ && angle <= end_angle_)
+            return point.norm() - radius_; // Inside the arc
         else
-            return std::numeric_limits<Real>::max(); // Outside the arc
+            return MaxReal; // Outside the arc
     }
 };
 
 class SDEllipse
 {
-    Real operator()(const Vec2d &point, Real a, Real b) const
+    Real a_, b_;
+
+  public:
+    explicit SDEllipse(Real a, Real b) : a_(a), b_(b) {}
+    void setParameters(Real a, Real b)
     {
-        return std::sqrt((point[0] * point[0]) / (a * a) + (point[1] * point[1]) / (b * b)) - 1.0;
+        a_ = a;
+        b_ = b;
+    }
+    Real operator()(const Vec2d &point) const
+    {
+        return std::sqrt((point[0] * point[0]) / (a_ * a_) + (point[1] * point[1]) / (b_ * b_)) - 1.0;
     }
 };
 //----------------------------------------------------------------------
@@ -545,10 +709,9 @@ class SDExtrusion
 
   public:
     explicit SDExtrusion(Real height) : height_(height) {}
-    Real getParameters() const { return height_; }
     void setParameters(Real height) { height_ = height; }
     template <typename Input2D>
-    Real operator()(const Vec3d &point, const Input2D &input) const
+    Real operator()(const Input2D &input, const Vec3d &point) const
     {
         Vec2d point_2d = point.tail(2); // Project to 2D plane
         Real axial = point[0];
@@ -564,10 +727,9 @@ class SDRotation
 
   public:
     explicit SDRotation(Real angle) : angle_(angle) {}
-    Real getParameters() const { return angle_; }
     void setParameters(Real angle) { angle_ = angle; }
     template <typename Input2D>
-    Real operator()(const Vec3d &point, const Input2D &input) const
+    Real operator()(const Input2D &input, const Vec3d &point) const
     {
         Real cos_angle = std::cos(angle_);
         Real sin_angle = std::sin(angle_);
@@ -589,7 +751,7 @@ class SDElongation
     Real getParameters() const { return elongation_factor_; }
     void setParameters(Real elongation_factor) { elongation_factor_ = elongation_factor; }
     template <typename Input3D>
-    Real operator()(const Vec3d &point, const Input3D &input) const
+    Real operator()(const Input3D &input, const Vec3d &point) const
     {
         Vec3d elongated_point = point;
         elongated_point[0] *= elongation_factor_; // Elongate along x-axis
