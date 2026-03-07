@@ -112,11 +112,44 @@ class BoundingBox
         return upper_ - lower_;
     };
 
+    BoundingBox expand(const Real &expand_size) const
+    {
+        Vectype new_lower = lower_ - Vectype::Constant(expand_size);
+        Vectype new_upper = upper_ + Vectype::Constant(expand_size);
+        return BoundingBox(new_lower, new_upper);
+    };
+
     BoundingBox expand(const Vectype &expand_size) const
     {
         Vectype new_lower = lower_ - expand_size;
         Vectype new_upper = upper_ + expand_size;
         return BoundingBox(new_lower, new_upper);
+    };
+
+    BoundingBox add(const BoundingBox &expand_box) const
+    {
+        Vectype new_lower = lower_.cwiseMin(expand_box.lower_);
+        Vectype new_upper = upper_.cwiseMax(expand_box.upper_);
+        return BoundingBox(new_lower, new_upper);
+    };
+
+    BoundingBox subtract(const BoundingBox &shrink_box) const
+    {
+        Vectype new_lower = lower_.cwiseMax(shrink_box.lower_);
+        Vectype new_upper = upper_.cwiseMin(shrink_box.upper_);
+        return BoundingBox(new_lower, new_upper);
+    };
+
+    BoundingBox intersection(const BoundingBox &another) const
+    {
+        Vectype new_lower = lower_.cwiseMax(another.lower_);
+        Vectype new_upper = upper_.cwiseMin(another.upper_);
+        return BoundingBox(new_lower, new_upper);
+    };
+
+    BoundingBox scale(const Real &scale_factor) const
+    {
+        return BoundingBox(lower_ * scale_factor, upper_ * scale_factor);
     };
 
     auto MinimumDimension() const

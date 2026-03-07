@@ -30,6 +30,7 @@
 #define GEOMETRIC_ELEMENT_H
 
 #include "base_data_type_package.h"
+#include "signed_distance_primitive.h"
 
 namespace SPH
 {
@@ -95,6 +96,43 @@ class GeometricCylinder
     Real radius_;
     Real halflength_;
 };
-} // namespace SPH
 
+template <typename SDPrimitiveType>
+class GeometricElementSD
+{
+    SDPrimitiveType sd_primitive_;
+
+    Vecd probeNormalDirection(const Vecd &probe_point)
+    {
+        Real eps = 1e-4;
+        Vecd normal_direction;
+        for (int i = 0; i != Dimensions; ++i)
+        {
+            Vecd probe_point_plus = probe_point;
+            probe_point_plus[i] += eps;
+            Vecd probe_point_minus = probe_point;
+            probe_point_minus[i] -= eps;
+            normal_direction[i] = (sd_primitive_(probe_point_plus) - sd_primitive_(probe_point_minus)) / (2.0 * eps);
+        }
+        return normal_direction.normalized();
+    }
+
+  public:
+    template <typename... Args>
+    explicit GeometricElementSD(Args &&...args) : sd_primitive_(std::forward<Args>(args)...) {}
+    ~GeometricElementSD() {};
+
+    Real checkContain(const Vecd &probe_point)
+    {
+        return sd_primitive_(probe_point) > 0.0 ? sd_primitive_(probe_point) : -sd_primitive_(probe_point);
+    }
+
+    Vecd findClosestPoint(const Vecd &probe_point)
+    {
+        Real signed_distance = sd_primitive_(probe_point);
+        Vecd normal_direction = probeNormalDirection(probe_point);
+        return probe_point - signed_distance * normal_direction;
+    }
+};
+} // namespace SPH
 #endif // GEOMETRIC_ELEMENT_H

@@ -32,6 +32,7 @@
 #define SIGNED_DISTANCE_PRIMITIVE_H
 
 #include "base_data_type.h"
+#include "geometric_primitive.h"
 #include "scalar_functions.h"
 
 namespace SPH
@@ -46,10 +47,16 @@ class SDBall
   public:
     explicit SDBall(Real radius) : radius_(radius) {}
     void setParameters(Real radius) { radius_ = radius; }
-    template <typename VecType>
-    Real operator()(const VecType &point) const
+    template <int N>
+    Real operator()(const Eigen::Matrix<Real, N, 1> &point) const
     {
         return point.norm() - radius_;
+    }
+
+    template <int N>
+    VecdBound<N> findBounds() const
+    {
+        return VecdBound<N>(Eigen::Matrix<Real, N, 1>::Constant(radius_));
     }
 };
 
@@ -66,26 +73,38 @@ class SDBox
         Eigen::Matrix<Real, N, 1> d = point.cwiseAbs() - halfsize_;
         return d.cwiseMax(Eigen::Matrix<Real, N, 1>::Zero()).norm() + SMIN(d.maxCoeff(), 0.0);
     }
+
+    template <int N>
+    VecdBound<N> findBounds() const
+    {
+        return VecdBound<N>(halfsize_);
+    }
 };
 
 template <typename InputType, typename ExtendType>
 class SDExtend
 {
     InputType input_;
-    ExtendType extended_;
+    ExtendType extend_;
 
   public:
-    explicit SDExtend(const InputType &input, const ExtendType &extended) : input_(input), extended_(extended) {}
+    explicit SDExtend(const InputType &input, const ExtendType &extended) : input_(input), extend_(extended) {}
     template <typename... InputArgs, typename... ExtendArgs>
     void setParameters(const InputArgs &...inputArgs, const ExtendArgs &...extendedArgs)
     {
         input_.setParameters(inputArgs...);
-        extended_.setParameters(extendedArgs...);
+        extend_.setParameters(extendedArgs...);
     }
     template <typename VecType>
     Real operator()(const VecType &point) const
     {
-        return extended_(input_, point);
+        return extend_(input_, point);
+    }
+
+    template <int N>
+    VecdBound<N> findBounds() const
+    {
+        return extend_.findBounds(input_);
     }
 };
 
@@ -98,6 +117,12 @@ class SDRound
     void setParameters(Real radius) { radius_ = radius; }
     template <typename InputType, typename VecType>
     Real operator()(const InputType &input, const VecType &point) const { return input(point) - radius_; }
+
+    template <typename InputType>
+    auto findBounds(const InputType &input) const
+    {
+        return input.findBounds().expand(radius_);
+    }
 };
 
 class SDOnion
@@ -109,6 +134,12 @@ class SDOnion
     void setParameters(Real radius) { radius_ = radius; }
     template <typename InputType, typename VecType>
     Real operator()(const InputType &input, const VecType &point) const { return ABS(input(point)) - radius_; }
+
+    template <typename InputType>
+    auto findBounds(const InputType &input) const
+    {
+        return input.findBounds().expand(SMAX(radius_, 0.0));
+    }
 };
 
 class SDChamfer
@@ -118,11 +149,18 @@ class SDChamfer
   public:
     explicit SDChamfer(Real chamfer_size) : chamfer_size_(chamfer_size) {}
     void setParameters(Real chamfer_size) { chamfer_size_ = chamfer_size; }
+
     template <typename InputType, typename VecType>
     Real operator()(const InputType &input, const VecType &point) const
     {
         Real sd = input(point);
         return sd + chamfer_size_ - sqrt(chamfer_size_ * chamfer_size_ + sd * sd);
+    }
+
+    template <typename InputType>
+    auto findBounds(const InputType &input) const
+    {
+        return input.findBounds().expand(chamfer_size_);
     }
 };
 
@@ -139,9 +177,15 @@ class SDScale
     {
         return input(point / scale_factor_) * scale_factor_;
     }
+
+    template <typename InputType>
+    auto findBounds(const InputType &input) const
+    {
+        return input.findBounds().scale(scale_factor_);
+    }
 };
 
-struct SDUnion
+struct SDaddition
 {
     template <typename VecType, typename Input1, typename Input2>
     Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const
@@ -168,12 +212,12 @@ struct SDIntersection
     }
 };
 
-class SDSmoothUnion
+class SDSmoothAddition
 {
     Real blend_factor_;
 
   public:
-    explicit SDSmoothUnion(Real blend_factor) : blend_factor_(blend_factor) {}
+    explicit SDSmoothAddition(Real blend_factor) : blend_factor_(blend_factor) {}
     Real getParameters() const { return blend_factor_; }
     void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
     template <typename VecType, typename Input1, typename Input2>
@@ -228,10 +272,9 @@ class SDSymmetry
 
   public:
     explicit SDSymmetry(int axis) : axis_(axis) {}
-    int getParameters() const { return axis_; }
     void setParameters(int axis) { axis_ = axis; }
     template <typename VecType, typename Input>
-    Real operator()(const VecType &point, const Input &input) const
+    Real operator()(const Input &input, const VecType &point) const
     {
         VecType symmetric_point = point;
         symmetric_point[axis_] = ABS(point[axis_]);
@@ -245,10 +288,9 @@ class SDRepeat
 
   public:
     explicit SDRepeat(const Vec3d &period) : period_(period) {}
-    Vec3d getParameters() const { return period_; }
     void setParameters(const Vec3d &period) { period_ = period; }
     template <typename VecType, typename Input>
-    Real operator()(const VecType &point, const Input &input) const
+    Real operator()(const Input &input, const VecType &point) const
     {
         VecType repeated_point = point;
         for (int i = 0; i < 3; ++i)
@@ -267,7 +309,8 @@ class SDCylinder
     Real halflength_, radius_;
 
   public:
-    explicit SDCylinder(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+    explicit SDCylinder(Real halflength, Real radius)
+        : halflength_(halflength), radius_(radius) {}
 
     void setParameters(Real halflength, Real radius)
     {
@@ -290,7 +333,8 @@ class SDCapsule
     Real halflength_, radius_;
 
   public:
-    explicit SDCapsule(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+    explicit SDCapsule(Real halflength, Real radius) 
+    : halflength_(halflength), radius_(radius) {}
     void setParameters(Real halflength, Real radius)
     {
         halflength_ = halflength;
@@ -314,7 +358,8 @@ class SDCone
     Real halflength_, radius_;
 
   public:
-    explicit SDCone(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+    explicit SDCone(Real halflength, Real radius) 
+    : halflength_(halflength), radius_(radius) {}
     void setParameters(Real halflength, Real radius)
     {
         halflength_ = halflength;
@@ -336,7 +381,8 @@ class SDRoundedCone
     Real halflength_, radius_;
 
   public:
-    explicit SDRoundedCone(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+    explicit SDRoundedCone(Real halflength, Real radius) 
+    : halflength_(halflength), radius_(radius) {}
     void setParameters(Real halflength, Real radius)
     {
         halflength_ = halflength;
@@ -358,7 +404,8 @@ class SDCappedCone
     Real halflength_, radius_;
 
   public:
-    explicit SDCappedCone(Real halflength, Real radius) : halflength_(halflength), radius_(radius) {}
+    explicit SDCappedCone(Real halflength, Real radius) 
+        : halflength_(halflength), radius_(radius) {}
     void setParameters(Real halflength, Real radius)
     {
         halflength_ = halflength;
