@@ -108,23 +108,28 @@ class GeometricElementSD
         Vecd normal_direction;
         for (int i = 0; i != Dimensions; ++i)
         {
-            Vecd probe_point_plus = probe_point;
-            probe_point_plus[i] += eps;
-            Vecd probe_point_minus = probe_point;
-            probe_point_minus[i] -= eps;
-            normal_direction[i] = (sd_primitive_(probe_point_plus) - sd_primitive_(probe_point_minus)) / (2.0 * eps);
+            Vecd probe_plus = probe_point;
+            Vecd probe_minus = probe_point;
+            probe_plus[i] += eps;
+            probe_minus[i] -= eps;
+            normal_direction[i] = (sd_primitive_(probe_plus) -
+                                   sd_primitive_(probe_minus)) /
+                                  (2.0 * eps);
         }
         return normal_direction.normalized();
     }
 
   public:
     template <typename... Args>
-    explicit GeometricElementSD(Args &&...args) : sd_primitive_(std::forward<Args>(args)...) {}
+    explicit GeometricElementSD(Args &&...args)
+        : sd_primitive_(std::forward<Args>(args)...) {}
     ~GeometricElementSD() {};
 
     Real checkContain(const Vecd &probe_point)
     {
-        return sd_primitive_(probe_point) > 0.0 ? sd_primitive_(probe_point) : -sd_primitive_(probe_point);
+        return sd_primitive_(probe_point) > 0.0
+                   ? sd_primitive_(probe_point)
+                   : -sd_primitive_(probe_point);
     }
 
     Vecd findClosestPoint(const Vecd &probe_point)
