@@ -140,7 +140,7 @@ class BoundingBox
         return BoundingBox(new_lower, new_upper);
     };
 
-    BoundingBox intersection(const BoundingBox &another) const
+    BoundingBox intersect(const BoundingBox &another) const
     {
         Vectype new_lower = lower_.cwiseMax(another.lower_);
         Vectype new_upper = upper_.cwiseMin(another.upper_);

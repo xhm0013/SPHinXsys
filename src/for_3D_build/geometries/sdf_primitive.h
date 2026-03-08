@@ -21,15 +21,17 @@
  *                                                                           *
  * ------------------------------------------------------------------------- */
 /**
- * @file 	signed_distance_primitive.h
- * @brief 	All primitives use local coordinates. All rotation is around the x-axis.
+ * @file sdf_primitive.h
+ * @brief All signed distance (sd) primitives use local coordinates.
+ * All rotation is around the x-axis.
  * @details Here, we only give popular primitives,
- * For more signed distance function, please check the website: https://iquilezles.org/articles/.
+ * For more signed distance function, please check the website:
+ * https://iquilezles.org/articles/.
  * @author	Xiangyu Hu
  */
 
-#ifndef SIGNED_DISTANCE_PRIMITIVE_H
-#define SIGNED_DISTANCE_PRIMITIVE_H
+#ifndef SDF_PRIMITIVE_H
+#define SDF_PRIMITIVE_H
 
 #include "base_data_type.h"
 #include "geometric_primitive.h"
@@ -40,12 +42,12 @@ namespace SPH
 //----------------------------------------------------------------------
 // Shared geometric primitives for signed distance function definition
 //----------------------------------------------------------------------
-class SDBall
+class SDFBall
 {
     Real radius_;
 
   public:
-    explicit SDBall(Real radius) : radius_(radius) {}
+    explicit SDFBall(Real radius) : radius_(radius) {}
     void setParameters(Real radius) { radius_ = radius; }
     template <int N>
     Real operator()(const Eigen::Matrix<Real, N, 1> &point) const
@@ -61,12 +63,12 @@ class SDBall
 };
 
 template <int N>
-class SDBox
+class SDFBox
 {
     Eigen::Matrix<Real, N, 1> halfsize_;
 
   public:
-    explicit SDBox(const Eigen::Matrix<Real, N, 1> &halfsize) : halfsize_(halfsize) {}
+    explicit SDFBox(const Eigen::Matrix<Real, N, 1> &halfsize) : halfsize_(halfsize) {}
     void setParameters(const Eigen::Matrix<Real, N, 1> &halfsize) { halfsize_ = halfsize; }
     Real operator()(const Eigen::Matrix<Real, N, 1> &point) const
     {
@@ -74,7 +76,6 @@ class SDBox
         return d.cwiseMax(Eigen::Matrix<Real, N, 1>::Zero()).norm() + SMIN(d.maxCoeff(), 0.0);
     }
 
-    template <int N>
     VecdBound<N> findBounds() const
     {
         return VecdBound<N>(halfsize_);
@@ -82,13 +83,13 @@ class SDBox
 };
 
 template <typename InputType, typename ExtendType>
-class SDExtend
+class SDFExtend
 {
     InputType input_;
     ExtendType extend_;
 
   public:
-    explicit SDExtend(const InputType &input, const ExtendType &extended) : input_(input), extend_(extended) {}
+    explicit SDFExtend(const InputType &input, const ExtendType &extended) : input_(input), extend_(extended) {}
     template <typename... InputArgs, typename... ExtendArgs>
     void setParameters(const InputArgs &...inputArgs, const ExtendArgs &...extendedArgs)
     {
@@ -108,12 +109,12 @@ class SDExtend
     }
 };
 
-class SDRound
+class SDFRound
 {
     Real radius_;
 
   public:
-    explicit SDRound(Real radius) : radius_(radius) {}
+    explicit SDFRound(Real radius) : radius_(radius) {}
     void setParameters(Real radius) { radius_ = radius; }
     template <typename InputType, typename VecType>
     Real operator()(const InputType &input, const VecType &point) const { return input(point) - radius_; }
@@ -125,12 +126,12 @@ class SDRound
     }
 };
 
-class SDOnion
+class SDFOnion
 {
     Real radius_;
 
   public:
-    explicit SDOnion(Real radius) : radius_(radius) {}
+    explicit SDFOnion(Real radius) : radius_(radius) {}
     void setParameters(Real radius) { radius_ = radius; }
     template <typename InputType, typename VecType>
     Real operator()(const InputType &input, const VecType &point) const { return ABS(input(point)) - radius_; }
@@ -142,12 +143,12 @@ class SDOnion
     }
 };
 
-class SDChamfer
+class SDFChamfer
 {
     Real chamfer_size_;
 
   public:
-    explicit SDChamfer(Real chamfer_size) : chamfer_size_(chamfer_size) {}
+    explicit SDFChamfer(Real chamfer_size) : chamfer_size_(chamfer_size) {}
     void setParameters(Real chamfer_size) { chamfer_size_ = chamfer_size; }
 
     template <typename InputType, typename VecType>
@@ -164,12 +165,12 @@ class SDChamfer
     }
 };
 
-class SDScale
+class SDFScale
 {
     Real scale_factor_;
 
   public:
-    explicit SDScale(Real scale_factor) : scale_factor_(scale_factor) {}
+    explicit SDFScale(Real scale_factor) : scale_factor_(scale_factor) {}
     Real getParameters() const { return scale_factor_; }
     void setParameters(Real scale_factor) { scale_factor_ = scale_factor; }
     template <typename InputType, typename VecType>
@@ -185,7 +186,7 @@ class SDScale
     }
 };
 
-struct SDaddition
+struct SDFaddition
 {
     template <typename VecType, typename Input1, typename Input2>
     Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const
@@ -194,7 +195,7 @@ struct SDaddition
     }
 };
 
-struct SDsubtraction
+struct SDFsubtraction
 {
     template <typename VecType, typename Input1, typename Input2>
     Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const
@@ -203,7 +204,7 @@ struct SDsubtraction
     }
 };
 
-struct SDIntersection
+struct SDFIntersection
 {
     template <typename Input1, typename Input2>
     Real operator()(const Vec2d &point, const Input1 &input1, const Input2 &input2) const
@@ -212,12 +213,12 @@ struct SDIntersection
     }
 };
 
-class SDSmoothAddition
+class SDFSmoothAddition
 {
     Real blend_factor_;
 
   public:
-    explicit SDSmoothAddition(Real blend_factor) : blend_factor_(blend_factor) {}
+    explicit SDFSmoothAddition(Real blend_factor) : blend_factor_(blend_factor) {}
     Real getParameters() const { return blend_factor_; }
     void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
     template <typename VecType, typename Input1, typename Input2>
@@ -230,12 +231,12 @@ class SDSmoothAddition
     }
 };
 
-class SDSmoothSubtraction
+class SDFSmoothSubtraction
 {
     Real blend_factor_;
 
   public:
-    explicit SDSmoothSubtraction(Real blend_factor) : blend_factor_(blend_factor) {}
+    explicit SDFSmoothSubtraction(Real blend_factor) : blend_factor_(blend_factor) {}
     Real getParameters() const { return blend_factor_; }
     void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
     template <typename VecType, typename Input1, typename Input2>
@@ -248,12 +249,12 @@ class SDSmoothSubtraction
     }
 };
 
-class SDSmoothIntersection
+class SDFSmoothIntersection
 {
     Real blend_factor_;
 
   public:
-    explicit SDSmoothIntersection(Real blend_factor) : blend_factor_(blend_factor) {}
+    explicit SDFSmoothIntersection(Real blend_factor) : blend_factor_(blend_factor) {}
     Real getParameters() const { return blend_factor_; }
     void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
     template <typename VecType, typename Input1, typename Input2>
@@ -266,12 +267,12 @@ class SDSmoothIntersection
     }
 };
 
-class SDSymmetry
+class SDFSymmetry
 {
     int axis_; // 0 for x-axis, 1 for y-axis, 2 for z-axis
 
   public:
-    explicit SDSymmetry(int axis) : axis_(axis) {}
+    explicit SDFSymmetry(int axis) : axis_(axis) {}
     void setParameters(int axis) { axis_ = axis; }
     template <typename VecType, typename Input>
     Real operator()(const Input &input, const VecType &point) const
@@ -282,12 +283,12 @@ class SDSymmetry
     }
 };
 
-class SDRepeat
+class SDFRepeat
 {
     Vec3d period_;
 
   public:
-    explicit SDRepeat(const Vec3d &period) : period_(period) {}
+    explicit SDFRepeat(const Vec3d &period) : period_(period) {}
     void setParameters(const Vec3d &period) { period_ = period; }
     template <typename VecType, typename Input>
     Real operator()(const Input &input, const VecType &point) const
@@ -304,12 +305,12 @@ class SDRepeat
 //----------------------------------------------------------------------
 // 3D geometric primitives for signed distance function definition
 //----------------------------------------------------------------------
-class SDCylinder
+class SDFCylinder
 {
     Real halflength_, radius_;
 
   public:
-    explicit SDCylinder(Real halflength, Real radius)
+    explicit SDFCylinder(Real halflength, Real radius)
         : halflength_(halflength), radius_(radius) {}
 
     void setParameters(Real halflength, Real radius)
@@ -328,13 +329,13 @@ class SDCylinder
     }
 };
 
-class SDCapsule
+class SDFCapsule
 {
     Real halflength_, radius_;
 
   public:
-    explicit SDCapsule(Real halflength, Real radius) 
-    : halflength_(halflength), radius_(radius) {}
+    explicit SDFCapsule(Real halflength, Real radius)
+        : halflength_(halflength), radius_(radius) {}
     void setParameters(Real halflength, Real radius)
     {
         halflength_ = halflength;
@@ -353,13 +354,13 @@ class SDCapsule
     }
 };
 
-class SDCone
+class SDFCone
 {
     Real halflength_, radius_;
 
   public:
-    explicit SDCone(Real halflength, Real radius) 
-    : halflength_(halflength), radius_(radius) {}
+    explicit SDFCone(Real halflength, Real radius)
+        : halflength_(halflength), radius_(radius) {}
     void setParameters(Real halflength, Real radius)
     {
         halflength_ = halflength;
@@ -376,13 +377,13 @@ class SDCone
     }
 };
 
-class SDRoundedCone
+class SDFRoundedCone
 {
     Real halflength_, radius_;
 
   public:
-    explicit SDRoundedCone(Real halflength, Real radius) 
-    : halflength_(halflength), radius_(radius) {}
+    explicit SDFRoundedCone(Real halflength, Real radius)
+        : halflength_(halflength), radius_(radius) {}
     void setParameters(Real halflength, Real radius)
     {
         halflength_ = halflength;
@@ -399,12 +400,12 @@ class SDRoundedCone
     }
 };
 
-class SDCappedCone
+class SDFCappedCone
 {
     Real halflength_, radius_;
 
   public:
-    explicit SDCappedCone(Real halflength, Real radius) 
+    explicit SDFCappedCone(Real halflength, Real radius)
         : halflength_(halflength), radius_(radius) {}
     void setParameters(Real halflength, Real radius)
     {
@@ -429,12 +430,12 @@ class SDCappedCone
 //----------------------------------------------------------------------
 // 2D geometric primitives for signed distance function definition
 //----------------------------------------------------------------------
-class SDTrapezoid
+class SDFTrapezoid
 {
     Real halflength_, top_halfwidth_, bottom_halfwidth_;
 
   public:
-    explicit SDTrapezoid(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
+    explicit SDFTrapezoid(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
         : halflength_(halflength), top_halfwidth_(top_halfwidth), bottom_halfwidth_(bottom_halfwidth) {}
     void setParameters(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
     {
@@ -453,12 +454,12 @@ class SDTrapezoid
     }
 };
 
-class SDParallelogram
+class SDFParallelogram
 {
     Real halflength_, halfwidth_, skew_;
 
   public:
-    explicit SDParallelogram(Real halflength, Real halfwidth, Real skew)
+    explicit SDFParallelogram(Real halflength, Real halfwidth, Real skew)
         : halflength_(halflength), halfwidth_(halfwidth), skew_(skew) {}
     Real operator()(const Vec2d &point) const
     {
@@ -471,12 +472,12 @@ class SDParallelogram
     }
 };
 
-class SDEquilateralTriangle
+class SDFEquilateralTriangle
 {
     Real halflength_;
 
   public:
-    explicit SDEquilateralTriangle(Real halflength) : halflength_(halflength) {}
+    explicit SDFEquilateralTriangle(Real halflength) : halflength_(halflength) {}
     void setParameters(Real halflength) { halflength_ = halflength; }
     Real operator()(const Vec2d &point) const
     {
@@ -489,12 +490,12 @@ class SDEquilateralTriangle
     }
 };
 
-class SDIsoscelesTriangle
+class SDFIsoscelesTriangle
 {
     Real halflength_, top_halfwidth_, bottom_halfwidth_;
 
   public:
-    explicit SDIsoscelesTriangle(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
+    explicit SDFIsoscelesTriangle(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
         : halflength_(halflength), top_halfwidth_(top_halfwidth), bottom_halfwidth_(bottom_halfwidth) {}
     void setParameters(Real halflength, Real top_halfwidth, Real bottom_halfwidth)
     {
@@ -514,12 +515,12 @@ class SDIsoscelesTriangle
     }
 };
 
-class SDTriangle
+class SDFTriangle
 {
     Vec2d vertex1_, vertex2_, vertex3_;
 
   public:
-    explicit SDTriangle(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3)
+    explicit SDFTriangle(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3)
         : vertex1_(v1), vertex2_(v2), vertex3_(v3) {}
     void setParameters(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3)
     {
@@ -556,12 +557,12 @@ class SDTriangle
     }
 };
 
-class SDQuadrilateral
+class SDFQuadrilateral
 {
     Vec2d vertex1_, vertex2_, vertex3_, vertex4_;
 
   public:
-    SDQuadrilateral(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3, const Vec2d &v4)
+    SDFQuadrilateral(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3, const Vec2d &v4)
         : vertex1_(v1), vertex2_(v2), vertex3_(v3), vertex4_(v4) {}
     void setParameters(const Vec2d &v1, const Vec2d &v2, const Vec2d &v3, const Vec2d &v4)
     {
@@ -572,20 +573,20 @@ class SDQuadrilateral
     }
     Real operator()(const Vec2d &point) const
     {
-        SDTriangle tri1(vertex1_, vertex2_, vertex3_);
-        SDTriangle tri2(vertex1_, vertex3_, vertex4_);
+        SDFTriangle tri1(vertex1_, vertex2_, vertex3_);
+        SDFTriangle tri2(vertex1_, vertex3_, vertex4_);
         Real d1 = tri1(point);
         Real d2 = tri2(point);
         return SMIN(d1, d2);
     }
 };
 
-class SDPolygon
+class SDFPolygon
 {
     std::vector<Vec2d> vertices_;
 
   public:
-    explicit SDPolygon(const std::vector<Vec2d> &vertices) : vertices_(vertices) {}
+    explicit SDFPolygon(const std::vector<Vec2d> &vertices) : vertices_(vertices) {}
     void setParameters(const std::vector<Vec2d> &vertices)
     {
         vertices_ = vertices;
@@ -600,7 +601,7 @@ class SDPolygon
         {
             Vec2d v1 = vertices_[i];
             Vec2d v2 = vertices_[(i + 1) % n];
-            SDTriangle tri(v1, v2, point);
+            SDFTriangle tri(v1, v2, point);
             Real d = tri(point);
             min_distance = SMIN(min_distance, d);
         }
@@ -608,12 +609,12 @@ class SDPolygon
     }
 };
 
-class SDPie
+class SDFPie
 {
     Real radius_, start_angle_, end_angle_;
 
   public:
-    explicit SDPie(Real radius, Real start_angle, Real end_angle)
+    explicit SDFPie(Real radius, Real start_angle, Real end_angle)
         : radius_(radius), start_angle_(start_angle), end_angle_(end_angle) {}
     void setParameters(Real radius, Real start_angle, Real end_angle)
     {
@@ -633,12 +634,12 @@ class SDPie
     }
 };
 
-class SDAnnulus
+class SDFAnnulus
 {
     Real inner_radius_, outer_radius_;
 
   public:
-    explicit SDAnnulus(Real inner_radius, Real outer_radius)
+    explicit SDFAnnulus(Real inner_radius, Real outer_radius)
         : inner_radius_(inner_radius), outer_radius_(outer_radius) {}
     void setParameters(Real inner_radius, Real outer_radius)
     {
@@ -657,12 +658,12 @@ class SDAnnulus
     }
 };
 
-class SDCutDisk
+class SDFCutDisk
 {
     Real radius_, cut_angle_;
 
   public:
-    explicit SDCutDisk(Real radius, Real cut_angle)
+    explicit SDFCutDisk(Real radius, Real cut_angle)
         : radius_(radius), cut_angle_(cut_angle) {}
     void setParameters(Real radius, Real cut_angle)
     {
@@ -681,12 +682,12 @@ class SDCutDisk
     }
 };
 
-class SDWedge
+class SDFWedge
 {
     Real radius_, start_angle_, end_angle_;
 
   public:
-    explicit SDWedge(Real radius, Real start_angle, Real end_angle)
+    explicit SDFWedge(Real radius, Real start_angle, Real end_angle)
         : radius_(radius), start_angle_(start_angle), end_angle_(end_angle) {}
     void setParameters(Real radius, Real start_angle, Real end_angle)
     {
@@ -706,12 +707,12 @@ class SDWedge
     }
 };
 
-class SDArc
+class SDFArc
 {
     Real radius_, start_angle_, end_angle_;
 
   public:
-    explicit SDArc(Real radius, Real start_angle, Real end_angle)
+    explicit SDFArc(Real radius, Real start_angle, Real end_angle)
         : radius_(radius), start_angle_(start_angle), end_angle_(end_angle) {}
     void setParameters(Real radius, Real start_angle, Real end_angle)
     {
@@ -731,12 +732,12 @@ class SDArc
     }
 };
 
-class SDEllipse
+class SDFEllipse
 {
     Real a_, b_;
 
   public:
-    explicit SDEllipse(Real a, Real b) : a_(a), b_(b) {}
+    explicit SDFEllipse(Real a, Real b) : a_(a), b_(b) {}
     void setParameters(Real a, Real b)
     {
         a_ = a;
@@ -750,12 +751,12 @@ class SDEllipse
 //----------------------------------------------------------------------
 // 3D geometric primitives derived from 2D primitives
 //----------------------------------------------------------------------
-class SDExtrusion
+class SDFExtrusion
 {
     Real height_;
 
   public:
-    explicit SDExtrusion(Real height) : height_(height) {}
+    explicit SDFExtrusion(Real height) : height_(height) {}
     void setParameters(Real height) { height_ = height; }
     template <typename Input2D>
     Real operator()(const Input2D &input, const Vec3d &point) const
@@ -768,12 +769,12 @@ class SDExtrusion
     }
 };
 
-class SDRotation
+class SDFRotation
 {
     Real angle_;
 
   public:
-    explicit SDRotation(Real angle) : angle_(angle) {}
+    explicit SDFRotation(Real angle) : angle_(angle) {}
     void setParameters(Real angle) { angle_ = angle; }
     template <typename Input2D>
     Real operator()(const Input2D &input, const Vec3d &point) const
@@ -789,12 +790,12 @@ class SDRotation
 //----------------------------------------------------------------------
 // 3D geometric primitives derived from 3D primitives
 //----------------------------------------------------------------------
-class SDElongation
+class SDFElongation
 {
     Real elongation_factor_;
 
   public:
-    explicit SDElongation(Real elongation_factor) : elongation_factor_(elongation_factor) {}
+    explicit SDFElongation(Real elongation_factor) : elongation_factor_(elongation_factor) {}
     Real getParameters() const { return elongation_factor_; }
     void setParameters(Real elongation_factor) { elongation_factor_ = elongation_factor; }
     template <typename Input3D>
@@ -807,4 +808,4 @@ class SDElongation
 };
 } // namespace SPH
 
-#endif // SIGNED_DISTANCE_PRIMITIVE_H
+#endif // SDF_PRIMITIVE_H
