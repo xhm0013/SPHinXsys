@@ -24,13 +24,13 @@ Real SDFShape::probeSignedDistance(const Vec3d &probe_point)
         GeometricOps op = primitive_and_op.second;
         Real primitive_distance = (*sdf_entity)(probe_point);
         if (op == GeometricOps::add)
-            signed_distance = std::min(signed_distance, primitive_distance);
+            signed_distance = SMIN(signed_distance, primitive_distance);
         else if (op == GeometricOps::sub)
-            signed_distance = std::max(signed_distance, -primitive_distance);
+            signed_distance = SMAX(signed_distance, -primitive_distance);
         else if (op == GeometricOps::sym_diff)
-            signed_distance = std::abs(primitive_distance);
+            signed_distance = ABS(primitive_distance);
         else if (op == GeometricOps::intersect)
-            signed_distance = std::max(signed_distance, primitive_distance);
+            signed_distance = SMAX(signed_distance, primitive_distance);
     }
     return signed_distance;
 }
@@ -54,7 +54,7 @@ Vecd SDFShape::probeNormalDirection(const Vec3d &probe_point)
 //=================================================================================================//
 BoundingBoxd SDFShape::findBounds()
 {
-    BoundingBoxd bounding_box;
+    /*BoundingBoxd bounding_box;
     for (const auto &primitive_and_op : primitives_and_ops_)
     {
         SDFBase *sdf_entity = primitive_and_op.first;
@@ -69,7 +69,23 @@ BoundingBoxd SDFShape::findBounds()
         else if (op == GeometricOps::intersect)
             bounding_box = bounding_box.intersect(primitive_bounds);
     }
-    return bounding_box;
+
+    return bounding_box;*/
+
+    // initial reference values
+    Vecd lower_bound = MaxReal * Vecd::Ones();
+    Vecd upper_bound = MinReal * Vecd::Ones();
+
+    for (const auto &primitive_and_op : primitives_and_ops_)
+    {
+        BoundingBoxd shape_bounds = primitive_and_op.first->findBounds();
+        for (int j = 0; j != Dimensions; ++j)
+        {
+            lower_bound[j] = SMIN(lower_bound[j], shape_bounds.lower_[j]);
+            upper_bound[j] = SMAX(upper_bound[j], shape_bounds.upper_[j]);
+        }
+    }
+    return BoundingBoxd(lower_bound, upper_bound);
 }
 //=================================================================================================//
 } // namespace SPH

@@ -10,6 +10,7 @@
 using namespace SPH;
 
 SDFBall sdf_ball(1.0);
+SDFBall sdf_ball_inner(0.5);
 BoundingBoxd system_domain_bounds(Vec3d::Constant(2.0));
 Real global_resolution = system_domain_bounds.MinimumDimension() / Real(10);
 AdaptiveNearSurface adaptive_near_surface(global_resolution, 1.15, 1.0, 3);
@@ -28,6 +29,7 @@ int main(int ac, char *av[])
     //----------------------------------------------------------------------
     auto &sdf_shape = sph_system.addShape<SDFShape>("SDFShape");
     sdf_shape.insertSDFPrimitive("Ball", sdf_ball, GeometricOps::add);
+    sdf_shape.insertSDFPrimitive("BallInner", sdf_ball_inner, GeometricOps::sub);
     auto &my_body = sph_system.addAdaptiveBody<RealBody>(adaptive_near_surface, sdf_shape);
     LevelSetShape &level_set_shape =
         my_body.defineBodyLevelSetShape().correctLevelSetSign().cleanLevelSet().writeLevelSet();
@@ -81,7 +83,7 @@ int main(int ac, char *av[])
     //----------------------------------------------------------------------
     //	First output before the simulation.
     //----------------------------------------------------------------------
-    body_state_recorder.writeToFile();
+    body_state_recorder.writeToFile(0);
     //----------------------------------------------------------------------
     //	Particle relaxation time stepping start here.
     //----------------------------------------------------------------------
