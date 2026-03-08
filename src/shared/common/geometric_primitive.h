@@ -133,13 +133,6 @@ class BoundingBox
         return BoundingBox(new_lower, new_upper);
     };
 
-    BoundingBox subtract(const BoundingBox &shrink_box) const
-    {
-        Vectype new_lower = lower_.cwiseMax(shrink_box.lower_);
-        Vectype new_upper = upper_.cwiseMin(shrink_box.upper_);
-        return BoundingBox(new_lower, new_upper);
-    };
-
     BoundingBox intersect(const BoundingBox &another) const
     {
         Vectype new_lower = lower_.cwiseMax(another.lower_);

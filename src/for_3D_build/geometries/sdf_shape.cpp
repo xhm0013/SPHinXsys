@@ -52,9 +52,9 @@ Vecd SDFShape::probeNormalDirection(const Vec3d &probe_point)
     return normal_direction.normalized();
 }
 //=================================================================================================//
-BoundingBoxd SDFShape::findBounds()
+BoundingBoxd SDFShape::findBounds() // only add and intersect operations are considered. 
 {
-    /*BoundingBoxd bounding_box;
+    BoundingBoxd bounding_box;
     for (const auto &primitive_and_op : primitives_and_ops_)
     {
         SDFBase *sdf_entity = primitive_and_op.first;
@@ -62,30 +62,11 @@ BoundingBoxd SDFShape::findBounds()
         GeometricOps op = primitive_and_op.second;
         if (op == GeometricOps::add)
             bounding_box = bounding_box.add(primitive_bounds);
-        else if (op == GeometricOps::sub)
-            bounding_box = bounding_box.subtract(primitive_bounds);
-        else if (op == GeometricOps::sym_diff)
-            bounding_box = bounding_box.add(primitive_bounds).subtract(primitive_bounds);
         else if (op == GeometricOps::intersect)
             bounding_box = bounding_box.intersect(primitive_bounds);
     }
 
-    return bounding_box;*/
-
-    // initial reference values
-    Vecd lower_bound = MaxReal * Vecd::Ones();
-    Vecd upper_bound = MinReal * Vecd::Ones();
-
-    for (const auto &primitive_and_op : primitives_and_ops_)
-    {
-        BoundingBoxd shape_bounds = primitive_and_op.first->findBounds();
-        for (int j = 0; j != Dimensions; ++j)
-        {
-            lower_bound[j] = SMIN(lower_bound[j], shape_bounds.lower_[j]);
-            upper_bound[j] = SMAX(upper_bound[j], shape_bounds.upper_[j]);
-        }
-    }
-    return BoundingBoxd(lower_bound, upper_bound);
+    return bounding_box;
 }
 //=================================================================================================//
 } // namespace SPH

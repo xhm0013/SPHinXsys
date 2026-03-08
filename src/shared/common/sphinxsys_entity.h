@@ -53,32 +53,22 @@ class Entity
 
 class EntityManager
 {
-    UniquePtrsKeeper<Entity> entity_ptrs_;
     std::unordered_map<std::type_index, std::unordered_map<size_t, Entity *>> all_entities_;
     size_t entity_count_ = 0;
 
   public:
-    template <typename EntityType, typename... Args>
-    EntityType *addEntity(const std::string &name, Args &&...args)
-    {
-        EntityType *entity = findEntityByName<EntityType>(name);
-        if (entity == nullptr)
-        {
-            entity = entity_ptrs_.createPtr<EntityType>(name, std::forward<Args>(args)...);
-            entity_count_++;
-            all_entities_[typeid(EntityType)][entity_count_] = entity;
-        }
-        return entity;
-    }
+    EntityManager() = default;
+    ~EntityManager() {};
 
-    template <typename EntityType>
-    EntityType * addEntity(EntityType *entity)
+    template <typename T>
+    T *addEntity(T *entity)
     {
-        EntityType *existing_entity = findEntityByName<EntityType>(entity->Name());
+        static_assert(std::is_base_of<Entity, T>::value, "T must derive from Entity");
+        T *existing_entity = findEntityByName<T>(entity->Name());
         if (existing_entity == nullptr)
         {
             entity_count_++;
-            all_entities_[typeid(EntityType)][entity_count_] = entity;
+            all_entities_[typeid(T)][entity_count_] = entity;
         }
         return entity;
     }

@@ -36,23 +36,23 @@
 namespace SPH
 {
 
-class SDFBase
+class SDFBase : public Entity
 {
   public:
-    explicit SDFBase() = default;
+    explicit SDFBase(const std::string &name) : Entity(name) {};
     virtual ~SDFBase() {};
     virtual Real operator()(const Vec3d &point) const = 0;
     virtual BoundingBoxd findBounds() const = 0;
 };
 
 template <typename SDFPrimitive>
-class SDFEntity : public Entity, public SDFBase
+class SDFEntity : public SDFBase
 {
     SDFPrimitive sdf_primitive_;
 
   public:
     explicit SDFEntity(const std::string &name, const SDFPrimitive &sdf_primitive)
-        : Entity(name), SDFBase(), sdf_primitive_(sdf_primitive) {};
+        : SDFBase(name), sdf_primitive_(sdf_primitive) {};
     virtual ~SDFEntity() {};
     SDFPrimitive &getSDFPrimitive() { return sdf_primitive_; };
     virtual Real operator()(const Vec3d &point) const override { return sdf_primitive_(point); };
@@ -63,6 +63,8 @@ using SDFPrimitiveAndOp = std::pair<SDFBase *, GeometricOps>;
 
 class SDFShape : public Shape
 {
+    UniquePtrsKeeper<SDFBase> sdf_ptrs_;
+
   public:
     explicit SDFShape(const std::string &shape_name) : Shape(shape_name) {};
     virtual ~SDFShape() {};
@@ -71,9 +73,9 @@ class SDFShape : public Shape
     template <typename SDFPrimitive>
     SDFShape &insertSDFPrimitive(const std::string &primitive_name, const SDFPrimitive &sdf_primitive, const GeometricOps &op)
     {
-        auto *sdf_entity = sdf_manager_.addEntity<SDFEntity<SDFPrimitive>>(primitive_name, sdf_primitive);
-        SDFPrimitiveAndOp primitive_and_op(sdf_entity, op);
-        primitives_and_ops_.push_back(primitive_and_op);
+        SDFEntity<SDFPrimitive> *sdf_entity = sdf_ptrs_.createPtr<SDFEntity<SDFPrimitive>>(primitive_name, sdf_primitive);
+        sdf_manager_.addEntity<SDFEntity<SDFPrimitive>>(sdf_entity);
+        primitives_and_ops_.push_back(SDFPrimitiveAndOp(sdf_entity, op));
         return *this;
     };
     /** Only reliable when the probe point is close to the shape surface.

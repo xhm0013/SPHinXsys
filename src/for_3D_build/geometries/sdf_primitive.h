@@ -48,6 +48,7 @@ class SDFBall
 
   public:
     explicit SDFBall(Real radius) : radius_(radius) {}
+    virtual ~SDFBall() {}
     void setParameters(Real radius) { radius_ = radius; }
     Real operator()(const Vec3d &point) const
     {
