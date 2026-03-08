@@ -59,7 +59,7 @@ class EntityManager
 
   public:
     template <typename EntityType, typename... Args>
-    EntityType &addEntity(const std::string &name, Args &&...args)
+    EntityType *addEntity(const std::string &name, Args &&...args)
     {
         EntityType *entity = findEntityByName<EntityType>(name);
         if (entity == nullptr)
@@ -68,11 +68,11 @@ class EntityManager
             entity_count_++;
             all_entities_[typeid(EntityType)][entity_count_] = entity;
         }
-        return *entity;
+        return entity;
     }
 
     template <typename EntityType>
-    void addEntity(EntityType *entity)
+    EntityType * addEntity(EntityType *entity)
     {
         EntityType *existing_entity = findEntityByName<EntityType>(entity->Name());
         if (existing_entity == nullptr)
@@ -80,6 +80,7 @@ class EntityManager
             entity_count_++;
             all_entities_[typeid(EntityType)][entity_count_] = entity;
         }
+        return entity;
     }
 
     template <typename T>

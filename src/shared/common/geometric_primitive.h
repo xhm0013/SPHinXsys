@@ -164,6 +164,11 @@ bool operator==(const BoundingBox<BoundType, N> &bb1, const BoundingBox<BoundTyp
     return bb1.lower_ == bb2.lower_ && bb1.upper_ == bb2.upper_;
 };
 
+using BoundingBox2d = BoundingBox<VecdBound, 2>;
+using BoundingBox3d = BoundingBox<VecdBound, 3>;
+using BoundingBox2i = BoundingBox<ArrayiBound, 2>;
+using BoundingBox3i = BoundingBox<ArrayiBound, 3>;
+
 using Rotation2d = Eigen::Rotation2D<Real>;
 using Rotation3d = Eigen::AngleAxis<Real>;
 

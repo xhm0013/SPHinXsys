@@ -71,6 +71,5 @@ BoundingBoxd SDFShape::findBounds()
     }
     return bounding_box;
 }
-
 //=================================================================================================//
 } // namespace SPH

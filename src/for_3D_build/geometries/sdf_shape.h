@@ -42,7 +42,7 @@ class SDFBase
     explicit SDFBase() = default;
     virtual ~SDFBase() {};
     virtual Real operator()(const Vec3d &point) const = 0;
-      virtual BoundingBoxd findBounds() const = 0;
+    virtual BoundingBoxd findBounds() const = 0;
 };
 
 template <typename SDFPrimitive>
@@ -51,7 +51,8 @@ class SDFEntity : public Entity, public SDFBase
     SDFPrimitive sdf_primitive_;
 
   public:
-    explicit SDFEntity(const std::string &name) : Entity(name), SDFBase() {};
+    explicit SDFEntity(const std::string &name, const SDFPrimitive &sdf_primitive)
+        : Entity(name), SDFBase(), sdf_primitive_(sdf_primitive) {};
     virtual ~SDFEntity() {};
     SDFPrimitive &getSDFPrimitive() { return sdf_primitive_; };
     virtual Real operator()(const Vec3d &point) const override { return sdf_primitive_(point); };
@@ -68,11 +69,12 @@ class SDFShape : public Shape
     EntityManager &getSDFManager() { return sdf_manager_; };
 
     template <typename SDFPrimitive>
-    void insertSDFPrimitiveAndOp(const SDFPrimitive &sdf_primitive, const GeometricOps &op)
+    SDFShape &insertSDFPrimitive(const std::string &primitive_name, const SDFPrimitive &sdf_primitive, const GeometricOps &op)
     {
-        auto *sdf_entity = sdf_manager_.addEntity<SDFEntity<SDFPrimitive>>(sdf_primitive);
+        auto *sdf_entity = sdf_manager_.addEntity<SDFEntity<SDFPrimitive>>(primitive_name, sdf_primitive);
         SDFPrimitiveAndOp primitive_and_op(sdf_entity, op);
         primitives_and_ops_.push_back(primitive_and_op);
+        return *this;
     };
     /** Only reliable when the probe point is close to the shape surface.
      * Need to be combined with level set shape and sign correction to avoid artifacts

@@ -49,36 +49,33 @@ class SDFBall
   public:
     explicit SDFBall(Real radius) : radius_(radius) {}
     void setParameters(Real radius) { radius_ = radius; }
-    template <int N>
-    Real operator()(const Eigen::Matrix<Real, N, 1> &point) const
+    Real operator()(const Vec3d &point) const
     {
         return point.norm() - radius_;
     }
 
-    template <int N>
-    VecdBound<N> findBounds() const
+    BoundingBox3d findBounds() const
     {
-        return VecdBound<N>(Eigen::Matrix<Real, N, 1>::Constant(radius_));
+        return BoundingBox3d(Vec3d::Constant(radius_));
     }
 };
 
-template <int N>
 class SDFBox
 {
-    Eigen::Matrix<Real, N, 1> halfsize_;
+    Vec3d halfsize_;
 
   public:
-    explicit SDFBox(const Eigen::Matrix<Real, N, 1> &halfsize) : halfsize_(halfsize) {}
-    void setParameters(const Eigen::Matrix<Real, N, 1> &halfsize) { halfsize_ = halfsize; }
-    Real operator()(const Eigen::Matrix<Real, N, 1> &point) const
+    explicit SDFBox(const Vec3d &halfsize) : halfsize_(halfsize) {}
+    void setParameters(const Vec3d &halfsize) { halfsize_ = halfsize; }
+    Real operator()(const Vec3d &point) const
     {
-        Eigen::Matrix<Real, N, 1> d = point.cwiseAbs() - halfsize_;
-        return d.cwiseMax(Eigen::Matrix<Real, N, 1>::Zero()).norm() + SMIN(d.maxCoeff(), 0.0);
+        Vec3d d = point.cwiseAbs() - halfsize_;
+        return d.cwiseMax(Vec3d::Zero()).norm() + SMIN(d.maxCoeff(), 0.0);
     }
 
-    VecdBound<N> findBounds() const
+    BoundingBox3d findBounds() const
     {
-        return VecdBound<N>(halfsize_);
+        return BoundingBox3d(halfsize_);
     }
 };
 
