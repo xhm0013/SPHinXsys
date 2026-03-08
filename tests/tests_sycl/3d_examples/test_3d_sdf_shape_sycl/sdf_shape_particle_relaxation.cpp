@@ -11,7 +11,7 @@ using namespace SPH;
 
 SDFBall sdf_ball(1.0);
 BoundingBoxd system_domain_bounds(Vec3d::Constant(2.0));
-Real global_resolution = system_domain_bounds.MinimumDimension() / Real(50);
+Real global_resolution = system_domain_bounds.MinimumDimension() / Real(10);
 AdaptiveNearSurface adaptive_near_surface(global_resolution, 1.15, 1.0, 3);
 //-----------------------------------------------------------------------------------------------------------
 //	Main program starts here.
