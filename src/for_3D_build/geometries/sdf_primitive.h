@@ -69,6 +69,175 @@ class SDFBox
     BoundingBox3d findBounds() const { return BoundingBox3d(halfsize_); }
 };
 
+class SDFCylinder
+{
+    Real halflength_, radius_;
+
+  public:
+    explicit SDFCylinder(Real halflength, Real radius)
+        : halflength_(halflength), radius_(radius) {}
+
+    void setParameters(Real halflength, Real radius)
+    {
+        halflength_ = halflength;
+        radius_ = radius;
+    }
+
+    Real operator()(const Vec3d &point) const
+    {
+        Real axial = point[0];
+        Real radial_distance = point.tail(2).norm();
+        Real dh = ABS(axial) - halflength_;
+        Real dr = radial_distance - radius_;
+        return SMAX(dh, dr);
+    }
+
+    BoundingBox3d findBounds() const
+    {
+        return BoundingBox3d(Vec3d(halflength_, radius_, radius_));
+    }
+};
+
+class SDFCapsule
+{
+    Real halflength_, radius_;
+
+  public:
+    explicit SDFCapsule(Real halflength, Real radius)
+        : halflength_(halflength), radius_(radius) {}
+    void setParameters(Real halflength, Real radius)
+    {
+        halflength_ = halflength;
+        radius_ = radius;
+    }
+    Real operator()(const Vec3d &point) const
+    {
+        Real axial = point[0];
+        Real radial_distance = point.tail(2).norm();
+        if (axial < 0.0)
+            return (point - Vec3d(0.0, 0.0, 0.0)).norm() - radius_; // bottom hemisphere
+        else if (axial > halflength_)
+            return (point - Vec3d(halflength_, 0.0, 0.0)).norm() - radius_; // top hemisphere
+        else
+            return radial_distance - radius_; // cylindrical part
+    }
+
+    BoundingBox3d findBounds() const
+    {
+        return BoundingBox3d(Vec3d(halflength_ + radius_, radius_, radius_));
+    }
+};
+
+class SDFCone
+{
+    Real height_, theta_;
+    Real sin_t_, cos_t_, tan_t_;
+
+  public:
+    explicit SDFCone(Real height, Real theta) : height_(height), theta_(theta)
+    {
+        sin_t_ = std::sin(theta_);
+        cos_t_ = std::cos(theta_);
+        tan_t_ = std::tan(theta_);
+    }
+    void setParameters(Real height, Real theta)
+    {
+        height_ = height;
+        theta_ = theta;
+        sin_t_ = std::sin(theta_);
+        cos_t_ = std::cos(theta_);
+        tan_t_ = std::tan(theta_);
+    }
+    Real operator()(const Vec3d &point) const
+    {
+        // c is the unit vector along the cone slope in the (x, radial) plane
+        Vec2d c(cos_t_, sin_t_);
+
+        // q is the point projected onto the (x, radial) plane
+        // x is the axial distance, q_rad is the distance from the x-axis
+        Real q_rad = point.segment<2>(1).norm(); // norm of (y, z)
+        Vec2d q(point.x(), q_rad);
+        // Project q onto the line defined by the cone slope
+        // dot product gives the projection length
+        Real dot_qc = q.dot(c);
+        Vec2d w = q - c * std::clamp(dot_qc, 0.0, height_ / cos_t_);
+        // Calculate distance to the base (cap)
+        // The cap is at x = h, with radial distance <= h * tan(theta)
+        Vec2d base_proj(q.x() - height_, q_rad - std::clamp(q_rad, 0.0, height_ * tan_t_));
+        // Determine if the point is inside or outside for the sign
+        // s1: height check, s2: slope check
+        Real s = SMAX(q.dot(Vec2d(c.y(), -c.x())), q.x() - height_);
+        return std::sqrt(SMIN(w.squaredNorm(), base_proj.squaredNorm())) * SGN(s);
+    }
+
+    BoundingBox3d findBounds() const
+    {
+        Real max_radius = height_ * tan_t_;
+        return BoundingBox3d(Vec3d(height_ + max_radius, max_radius, max_radius));
+    }
+};
+
+class SDFRoundedCone
+{
+    Real halflength_, radius_;
+
+  public:
+    explicit SDFRoundedCone(Real halflength, Real radius)
+        : halflength_(halflength), radius_(radius) {}
+    void setParameters(Real halflength, Real radius)
+    {
+        halflength_ = halflength;
+        radius_ = radius;
+    }
+    Real operator()(const Vec3d &point) const
+    {
+        Real axial = point[0];
+        Real radial_distance = point.tail(2).norm();
+        if (axial < 0.0 || axial > halflength_)
+            return MaxReal; // outside the cone's height
+        Real local_radius = (halflength_ - axial) / halflength_ * radius_;
+        return radial_distance - local_radius + radius_;
+    }
+    BoundingBox3d findBounds() const
+    {
+        return BoundingBox3d(Vec3d(halflength_ + radius_, radius_, radius_));
+    }
+};
+
+class SDFCappedCone
+{
+    Real halflength_, radius_;
+
+  public:
+    explicit SDFCappedCone(Real halflength, Real radius)
+        : halflength_(halflength), radius_(radius) {}
+    void setParameters(Real halflength, Real radius)
+    {
+        halflength_ = halflength;
+        radius_ = radius;
+    }
+    Real operator()(const Vec3d &point) const
+    {
+        Real axial = point[0];
+        Real radial_distance = point.tail(2).norm();
+        if (axial < 0.0)
+            return (point - Vec3d(0.0, 0.0, 0.0)).norm() - radius_; // bottom hemisphere
+        else if (axial > halflength_)
+            return (point - Vec3d(halflength_, 0.0, 0.0)).norm() - radius_; // top hemisphere
+        else
+        {
+            Real local_radius = (halflength_ - axial) / halflength_ * radius_;
+            return radial_distance - local_radius; // conical part
+        }
+    }
+    BoundingBox3d findBounds() const
+    {
+        return BoundingBox3d(Vec3d(halflength_ + radius_, radius_, radius_));
+    }
+};
+//----------------------------------------------------------------------
+// Extended geometric primitives
+//----------------------------------------------------------------------
 template <typename InputType, typename ExtendType>
 class SDFExtend
 {
@@ -321,131 +490,6 @@ class SDFRepeat
                 repeated_point[i] = std::fmod(point[i] + 0.5 * period_[i], period_[i]) - 0.5 * period_[i];
         }
         return input(repeated_point);
-    }
-};
-//----------------------------------------------------------------------
-// 3D geometric primitives for signed distance function definition
-//----------------------------------------------------------------------
-class SDFCylinder
-{
-    Real halflength_, radius_;
-
-  public:
-    explicit SDFCylinder(Real halflength, Real radius)
-        : halflength_(halflength), radius_(radius) {}
-
-    void setParameters(Real halflength, Real radius)
-    {
-        halflength_ = halflength;
-        radius_ = radius;
-    }
-
-    Real operator()(const Vec3d &point) const
-    {
-        Real axial = point[0];
-        Real radial_distance = point.tail(2).norm();
-        Real dh = ABS(axial) - halflength_;
-        Real dr = radial_distance - radius_;
-        return SMAX(dh, dr);
-    }
-};
-
-class SDFCapsule
-{
-    Real halflength_, radius_;
-
-  public:
-    explicit SDFCapsule(Real halflength, Real radius)
-        : halflength_(halflength), radius_(radius) {}
-    void setParameters(Real halflength, Real radius)
-    {
-        halflength_ = halflength;
-        radius_ = radius;
-    }
-    Real operator()(const Vec3d &point) const
-    {
-        Real axial = point[0];
-        Real radial_distance = point.tail(2).norm();
-        if (axial < 0.0)
-            return (point - Vec3d(0.0, 0.0, 0.0)).norm() - radius_; // bottom hemisphere
-        else if (axial > halflength_)
-            return (point - Vec3d(halflength_, 0.0, 0.0)).norm() - radius_; // top hemisphere
-        else
-            return radial_distance - radius_; // cylindrical part
-    }
-};
-
-class SDFCone
-{
-    Real halflength_, radius_;
-
-  public:
-    explicit SDFCone(Real halflength, Real radius)
-        : halflength_(halflength), radius_(radius) {}
-    void setParameters(Real halflength, Real radius)
-    {
-        halflength_ = halflength;
-        radius_ = radius;
-    }
-    Real operator()(const Vec3d &point) const
-    {
-        Real axial = point[0];
-        Real radial_distance = point.tail(2).norm();
-        if (axial < 0.0 || axial > halflength_)
-            return MaxReal; // outside the cone's height
-        Real local_radius = (halflength_ - axial) / halflength_ * radius_;
-        return radial_distance - local_radius;
-    }
-};
-
-class SDFRoundedCone
-{
-    Real halflength_, radius_;
-
-  public:
-    explicit SDFRoundedCone(Real halflength, Real radius)
-        : halflength_(halflength), radius_(radius) {}
-    void setParameters(Real halflength, Real radius)
-    {
-        halflength_ = halflength;
-        radius_ = radius;
-    }
-    Real operator()(const Vec3d &point) const
-    {
-        Real axial = point[0];
-        Real radial_distance = point.tail(2).norm();
-        if (axial < 0.0 || axial > halflength_)
-            return MaxReal; // outside the cone's height
-        Real local_radius = (halflength_ - axial) / halflength_ * radius_;
-        return radial_distance - local_radius + radius_;
-    }
-};
-
-class SDFCappedCone
-{
-    Real halflength_, radius_;
-
-  public:
-    explicit SDFCappedCone(Real halflength, Real radius)
-        : halflength_(halflength), radius_(radius) {}
-    void setParameters(Real halflength, Real radius)
-    {
-        halflength_ = halflength;
-        radius_ = radius;
-    }
-    Real operator()(const Vec3d &point) const
-    {
-        Real axial = point[0];
-        Real radial_distance = point.tail(2).norm();
-        if (axial < 0.0)
-            return (point - Vec3d(0.0, 0.0, 0.0)).norm() - radius_; // bottom hemisphere
-        else if (axial > halflength_)
-            return (point - Vec3d(halflength_, 0.0, 0.0)).norm() - radius_; // top hemisphere
-        else
-        {
-            Real local_radius = (halflength_ - axial) / halflength_ * radius_;
-            return radial_distance - local_radius; // conical part
-        }
     }
 };
 //----------------------------------------------------------------------
