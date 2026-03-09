@@ -45,7 +45,8 @@ using AngularVecd = Real;
 using Rotation = Rotation2d;
 using BoundingBoxd = BoundingBox2d;
 using BoundingBoxi = BoundingBox2i;
-using Transform = BaseTransform<Rotation2d, Vec2d>;
+using Rotationd = Rotation2d;
+using Transform = Transform2d;
 
 /** only works for smoothing length ratio less or equal than 1.3*/
 constexpr int MaximumNeighborhoodSize = int(M_PI * 9);

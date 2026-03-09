@@ -22,7 +22,7 @@
  * ------------------------------------------------------------------------- */
 /**
  * @file sdf_primitive.h
- * @brief All signed distance (sd) primitives use local coordinates.
+ * @brief All signed distance function (sdf) primitives use local coordinates.
  * All rotation is around the x-axis.
  * @details Here, we only give popular primitives,
  * For more signed distance function, please check the website:
@@ -50,15 +50,8 @@ class SDFBall
     explicit SDFBall(Real radius) : radius_(radius) {}
     virtual ~SDFBall() {}
     void setParameters(Real radius) { radius_ = radius; }
-    Real operator()(const Vec3d &point) const
-    {
-        return point.norm() - radius_;
-    }
-
-    BoundingBox3d findBounds() const
-    {
-        return BoundingBox3d(Vec3d::Constant(radius_));
-    }
+    Real operator()(const Vec3d &point) const { return point.norm() - radius_; }
+    BoundingBox3d findBounds() const { return BoundingBox3d(Vec3d::Constant(radius_)); }
 };
 
 class SDFBox
@@ -73,11 +66,7 @@ class SDFBox
         Vec3d d = point.cwiseAbs() - halfsize_;
         return d.cwiseMax(Vec3d::Zero()).norm() + SMIN(d.maxCoeff(), 0.0);
     }
-
-    BoundingBox3d findBounds() const
-    {
-        return BoundingBox3d(halfsize_);
-    }
+    BoundingBox3d findBounds() const { return BoundingBox3d(halfsize_); }
 };
 
 template <typename InputType, typename ExtendType>
@@ -95,16 +84,8 @@ class SDFExtend
         extend_.setParameters(extendedArgs...);
     }
     template <typename VecType>
-    Real operator()(const VecType &point) const
-    {
-        return extend_(input_, point);
-    }
-
-    template <int N>
-    VecdBound<N> findBounds() const
-    {
-        return extend_.findBounds(input_);
-    }
+    Real operator()(const VecType &point) const { return extend_(input_, point); }
+    BoundingBox3d findBounds() const { return extend_.findBounds(input_); }
 };
 
 class SDFRound
@@ -184,7 +165,49 @@ class SDFScale
     }
 };
 
-struct SDFaddition
+class SDFTransform
+{
+    Transform3d transform_;
+
+  public:
+    template <typename... Args>
+    explicit SDFTransform(Args &&...args) : transform_(std::forward<Args>(args)...) {}
+
+    template <typename... Args>
+    void setParameters(Args &&...args)
+    {
+        transform_ = Transform3d(std::forward<Args>(args)...);
+    }
+
+    template <typename InputType, typename VecType>
+    Real operator()(const InputType &input, const VecType &point) const
+    {
+        Vecd transformed_point = transform_.shiftBaseStationToFrame(point);
+        return input(transformed_point);
+    }
+
+    template <typename InputType>
+    auto findBounds(const InputType &input) const
+    {
+        BoundingBox3d original_bound = input.findBounds();
+        Vec3d bb_min = Vec3d::Constant(MaxReal);
+        Vec3d bb_max = Vec3d::Constant(-MaxReal);
+        for (auto x : {original_bound.lower_.x(), original_bound.upper_.x()})
+        {
+            for (auto y : {original_bound.lower_.y(), original_bound.upper_.y()})
+            {
+                for (auto z : {original_bound.lower_.z(), original_bound.upper_.z()})
+                {
+                    bb_min = bb_min.cwiseMin(transform_.shiftFrameStationToBase(Vec3d(x, y, z)));
+                    bb_max = bb_max.cwiseMax(transform_.shiftFrameStationToBase(Vec3d(x, y, z)));
+                }
+            }
+        }
+        return BoundingBox3d(bb_min, bb_max);
+    }
+};
+
+struct SDFAddition
 {
     template <typename VecType, typename Input1, typename Input2>
     Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const
@@ -193,7 +216,7 @@ struct SDFaddition
     }
 };
 
-struct SDFsubtraction
+struct SDFSubtraction
 {
     template <typename VecType, typename Input1, typename Input2>
     Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const

@@ -10,7 +10,9 @@
 using namespace SPH;
 
 SDFBall sdf_ball(1.0);
-SDFBox sdf_box_small(Vec3d::Constant(0.5));
+SDFExtend<SDFBox, SDFTransform> sdf_box_small(
+    SDFBox(Vec3d::Constant(0.5)), 
+    SDFTransform(Transform(Rotation3d(Pi / 4.0, Vec3d::UnitX()), Vec3d::Zero())));
 BoundingBoxd system_domain_bounds(Vec3d::Constant(2.0));
 Real global_resolution = system_domain_bounds.MinimumDimension() / Real(10);
 AdaptiveNearSurface adaptive_near_surface(global_resolution, 1.15, 1.0, 3);

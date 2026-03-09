@@ -181,29 +181,32 @@ class BaseTransform
     BaseTransform() : BaseTransform(VecType::Zero()) {};
 
     /** Forward rotation. */
-    VecType xformFrameVecToBase(const VecType &origin)
+    VecType xformFrameVecToBase(const VecType &origin) const
     {
         return rotation_ * origin;
     };
 
     /** Forward transformation. Note that the rotation operation is carried out first. */
-    VecType shiftFrameStationToBase(const VecType &origin)
+    VecType shiftFrameStationToBase(const VecType &origin) const
     {
         return translation_ + xformFrameVecToBase(origin);
     };
 
     /** Inverse rotation. */
-    VecType xformBaseVecToFrame(const VecType &target)
+    VecType xformBaseVecToFrame(const VecType &target) const
     {
         return inv_rotation_ * target;
     };
 
     /** Inverse transformation. Note that the inverse translation operation is carried out first. */
-    VecType shiftBaseStationToFrame(const VecType &target)
+    VecType shiftBaseStationToFrame(const VecType &target) const
     {
         return xformBaseVecToFrame(target - translation_);
     };
 };
+
+using Transform2d = BaseTransform<Rotation2d, Vec2d>;
+using Transform3d = BaseTransform<Rotation3d, Vec3d>;
 } // namespace SPH
 
 #endif // GEOMETRIC_PRIMITIVE_H
