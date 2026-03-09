@@ -794,7 +794,6 @@ void StandardWallFunctionCorrection::interaction(size_t index_i, Real dt)
 
         if (is_near_wall_P1_[index_i] == 1)
         {
-            Matd vel_grad_i_tn = Matd::Zero();
             Real total_weight = 0.0;
 
             Real epsilon_p_weighted_sum = 0.0;
