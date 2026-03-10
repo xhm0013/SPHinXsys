@@ -10,12 +10,12 @@
 using namespace SPH;
 
 SDFBall sdf_ball(1.0);
-SDFCone sdf_capped_cone(0.5, 0.25);
+SDFCone sdf_capped_cone(1.0, 1.0);
 SDFTransform sdf_transform(Transform(Rotation3d(Pi / 4.0, Vec3d::UnitY()), Vec3d::Zero()));
 SDFExtend sdf_extend(sdf_capped_cone, sdf_transform);
 BoundingBoxd system_domain_bounds(Vec3d::Constant(2.0));
 Real global_resolution = system_domain_bounds.MinimumDimension() / Real(10);
-AdaptiveNearSurface adaptive_near_surface(global_resolution, 1.15, 1.0, 3);
+AdaptiveNearSurface adaptive_near_surface(global_resolution, 1.15, 1.0, 4);
 //-----------------------------------------------------------------------------------------------------------
 //	Main program starts here.
 //-----------------------------------------------------------------------------------------------------------
@@ -30,8 +30,8 @@ int main(int ac, char *av[])
     //	Creating body, materials and particles.
     //----------------------------------------------------------------------
     auto &sdf_shape = sph_system.addShape<SDFShape>("SDFShape");
-//    sdf_shape.insertSDFPrimitive("Ball", sdf_ball, GeometricOps::add);
-    sdf_shape.insertSDFPrimitive("CappedCone", sdf_capped_cone, GeometricOps::add);
+    sdf_shape.insertSDFPrimitive("Ball", sdf_ball, GeometricOps::add);
+    sdf_shape.insertSDFPrimitive("CappedCone", sdf_capped_cone, GeometricOps::sub);
     auto &my_body = sph_system.addAdaptiveBody<RealBody>(adaptive_near_surface, sdf_shape);
     LevelSetShape &level_set_shape =
         my_body.defineBodyLevelSetShape().correctLevelSetSign().cleanLevelSet().writeLevelSet();

@@ -130,50 +130,31 @@ class SDFCapsule
 
 class SDFCone
 {
-    Real height_, theta_;
-    Real sin_t_, cos_t_, tan_t_;
+    Real half_height_, radius_;
 
   public:
-    explicit SDFCone(Real height, Real theta) : height_(height), theta_(theta)
+    explicit SDFCone(Real half_height, Real radius) : half_height_(half_height), radius_(radius) {}
+    void setParameters(Real half_height, Real radius)
     {
-        sin_t_ = std::sin(theta_);
-        cos_t_ = std::cos(theta_);
-        tan_t_ = std::tan(theta_);
+        half_height_ = half_height;
+        radius_ = radius;
     }
-    void setParameters(Real height, Real theta)
-    {
-        height_ = height;
-        theta_ = theta;
-        sin_t_ = std::sin(theta_);
-        cos_t_ = std::cos(theta_);
-        tan_t_ = std::tan(theta_);
-    }
+
     Real operator()(const Vec3d &point) const
     {
-        // c is the unit vector along the cone slope in the (x, radial) plane
-        Vec2d c(cos_t_, sin_t_);
-
-        // q is the point projected onto the (x, radial) plane
-        // x is the axial distance, q_rad is the distance from the x-axis
-        Real q_rad = point.segment<2>(1).norm(); // norm of (y, z)
-        Vec2d q(point.x(), q_rad);
-        // Project q onto the line defined by the cone slope
-        // dot product gives the projection length
-        Real dot_qc = q.dot(c);
-        Vec2d w = q - c * std::clamp(dot_qc, 0.0, height_ / cos_t_);
-        // Calculate distance to the base (cap)
-        // The cap is at x = h, with radial distance <= h * tan(theta)
-        Vec2d base_proj(q.x() - height_, q_rad - std::clamp(q_rad, 0.0, height_ * tan_t_));
-        // Determine if the point is inside or outside for the sign
-        // s1: height check, s2: slope check
-        Real s = SMAX(q.dot(Vec2d(c.y(), -c.x())), q.x() - height_);
-        return std::sqrt(SMIN(w.squaredNorm(), base_proj.squaredNorm())) * SGN(s);
+        Vec2d p = Vec2d(Vec2d(point.x(), point.z()).norm() - radius_, point.y() + half_height_);
+        Vec2d e = Vec2d(-radius_, 2.0 * half_height_);
+        //        Vec2d q = p - e * std::clamp(p.dot(e) / e.squaredNorm(), 0.0, 1.0);
+        //        Real d = q.norm();
+        //        return SMAX(q.x(), q.y()) > 0.0 ? d : -SMIN(d, p.y());
+        Vec2d d1 = p - e * std::clamp(p.dot(e) / e.squaredNorm(), 0.0, 1.0);
+        Vec2d d2 = Vec2d(SMAX(p.x(), 0.0), -p.y());
+        return std::sqrt(SMIN(d1.squaredNorm(), d2.squaredNorm())) * SGN(SMAX(SMAX(d1.x(), d1.y()), d2.y()));
     }
 
     BoundingBox3d findBounds() const
     {
-        Real max_radius = height_ * tan_t_;
-        return BoundingBox3d(Vec3d(height_ + max_radius, max_radius, max_radius));
+        return BoundingBox3d(Vec3d(half_height_, radius_, radius_));
     }
 };
 
