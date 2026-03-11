@@ -144,12 +144,9 @@ class SDFCone
     {
         Vec2d p = Vec2d(Vec2d(point.x(), point.z()).norm() - radius_, point.y() + half_height_);
         Vec2d e = Vec2d(-radius_, 2.0 * half_height_);
-        //        Vec2d q = p - e * std::clamp(p.dot(e) / e.squaredNorm(), 0.0, 1.0);
-        //        Real d = q.norm();
-        //        return SMAX(q.x(), q.y()) > 0.0 ? d : -SMIN(d, p.y());
-        Vec2d d1 = p - e * std::clamp(p.dot(e) / e.squaredNorm(), 0.0, 1.0);
-        Vec2d d2 = Vec2d(SMAX(p.x(), 0.0), -p.y());
-        return std::sqrt(SMIN(d1.squaredNorm(), d2.squaredNorm())) * SGN(SMAX(SMAX(d1.x(), d1.y()), d2.y()));
+        Vec2d q = p - e * std::clamp(p.dot(e) / e.squaredNorm(), 0.0, 1.0);
+        Real d = q.norm();
+        return SMAX(q.x(), q.y()) > 0.0 ? d : -SMIN(d, p.y());
     }
 
     BoundingBox3d findBounds() const
