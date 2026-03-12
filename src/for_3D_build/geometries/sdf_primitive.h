@@ -418,17 +418,17 @@ class SDFOperation
 
 class SDFSmoothAddition
 {
-    Real blend_factor_;
+    Real smoothing_length_; // scaled with mesh size
 
   public:
-    explicit SDFSmoothAddition(Real blend_factor) : blend_factor_(blend_factor) {}
-    void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
+    explicit SDFSmoothAddition(Real smoothing_length) : smoothing_length_(smoothing_length) {}
+    void setParameters(Real smoothing_length) { smoothing_length_ = smoothing_length; }
     template <typename Input1, typename Input2>
     Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
     {
         Real d1 = input1(point);
         Real d2 = input2(point);
-        Real k = 4.0 * blend_factor_;
+        Real k = 4.0 * smoothing_length_;
         Real h = SMAX(k - ABS(d1 - d2), 0.0);
         return SMIN(d1, d2) - h * h * 0.25 / k;
     }
@@ -442,17 +442,17 @@ class SDFSmoothAddition
 
 class SDFSmoothSubtraction
 {
-    Real blend_factor_;
+    Real smoothing_length_; // scaled with mesh size
 
   public:
-    explicit SDFSmoothSubtraction(Real blend_factor) : blend_factor_(blend_factor) {}
-    void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
+    explicit SDFSmoothSubtraction(Real smoothing_length) : smoothing_length_(smoothing_length) {}
+    void setParameters(Real smoothing_length) { smoothing_length_ = smoothing_length; }
     template <typename Input1, typename Input2>
     Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
     {
         Real d1 = -input1(point);
         Real d2 = input2(point);
-        Real k = 4.0 * blend_factor_;
+        Real k = 4.0 * smoothing_length_;
         Real h = SMAX(k - ABS(d1 - d2), 0.0);
         return -(SMIN(d1, d2) - h * h * 0.25 / k);
     }
@@ -466,17 +466,17 @@ class SDFSmoothSubtraction
 
 class SDFSmoothIntersection
 {
-    Real blend_factor_;
+    Real smoothing_length_; // scaled with mesh size
 
   public:
-    explicit SDFSmoothIntersection(Real blend_factor) : blend_factor_(blend_factor) {}
-    void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
+    explicit SDFSmoothIntersection(Real smoothing_length) : smoothing_length_(smoothing_length) {}
+    void setParameters(Real smoothing_length) { smoothing_length_ = smoothing_length; }
     template <typename Input1, typename Input2>
     Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
     {
         Real d1 = -input1(point);
         Real d2 = -input2(point);
-        Real k = 4.0 * blend_factor_;
+        Real k = 4.0 * smoothing_length_;
         Real h = SMAX(k - ABS(d1 - d2), 0.0);
         return -(SMIN(d1, d2) - h * h * 0.25 / k);
     }

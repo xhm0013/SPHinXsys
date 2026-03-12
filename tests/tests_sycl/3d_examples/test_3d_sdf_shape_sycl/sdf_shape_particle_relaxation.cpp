@@ -9,13 +9,14 @@
 #include "sphinxsys.h"
 using namespace SPH;
 
+BoundingBoxd system_domain_bounds(Vec3d::Constant(2.0));
+Real spacing_ref = system_domain_bounds.MinimumDimension() / Real(10);
+AdaptiveNearSurface adaptive_near_surface(spacing_ref, 1.15, 1.0, 4);
 SDFBall sdf_ball(1.0);
 SDFCone sdf_capped_cone(1.0, 1.0);
 SDFTransform sdf_transform(Transform(Rotation3d(Pi / 4.0, Vec3d::UnitY()), Vec3d(-0.5, 0.0, 0.0)));
 SDFExtend sdf_extend(sdf_capped_cone, sdf_transform);
-BoundingBoxd system_domain_bounds(Vec3d::Constant(2.0));
-Real global_resolution = system_domain_bounds.MinimumDimension() / Real(10);
-AdaptiveNearSurface adaptive_near_surface(global_resolution, 1.15, 1.0, 4);
+SDFOperation sdf_operation(SDFSmoothIntersection(3.0 * adaptive_near_surface.MinimumSpacing()), sdf_ball, sdf_extend);
 //-----------------------------------------------------------------------------------------------------------
 //	Main program starts here.
 //-----------------------------------------------------------------------------------------------------------
@@ -24,17 +25,16 @@ int main(int ac, char *av[])
     //----------------------------------------------------------------------
     //	Build up -- a SPHSystem
     //----------------------------------------------------------------------
-    SPHSystem sph_system(system_domain_bounds, global_resolution);
+    SPHSystem sph_system(system_domain_bounds, spacing_ref);
     sph_system.handleCommandlineOptions(ac, av);
     //----------------------------------------------------------------------
     //	Creating body, materials and particles.
     //----------------------------------------------------------------------
     auto &sdf_shape = sph_system.addShape<SDFShape>("SDFShape");
-    sdf_shape.insertSDFPrimitive("Ball", sdf_ball, GeometricOps::add);
-    sdf_shape.insertSDFPrimitive("CappedCone", sdf_extend, GeometricOps::sub);
+    sdf_shape.insertSDFPrimitive("Ball", sdf_operation, GeometricOps::add);
+    //    sdf_shape.insertSDFPrimitive("CappedCone", sdf_extend, GeometricOps::sub);
     auto &my_body = sph_system.addAdaptiveBody<RealBody>(adaptive_near_surface, sdf_shape);
-    LevelSetShape &level_set_shape =
-        my_body.defineBodyLevelSetShape().correctLevelSetSign().cleanLevelSet().writeLevelSet();
+    LevelSetShape &level_set_shape = my_body.defineBodyLevelSetShape().writeLevelSet();
     my_body.generateParticles<BaseParticles, Lattice>();
     auto &near_body_surface = my_body.addBodyPart<NearShapeSurface>();
     //----------------------------------------------------------------------
