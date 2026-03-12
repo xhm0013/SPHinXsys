@@ -130,20 +130,20 @@ class SDFCapsule
 
 class SDFCone
 {
-    Real half_height_, radius_;
+    Real halfheight_, radius_;
 
   public:
-    explicit SDFCone(Real half_height, Real radius) : half_height_(half_height), radius_(radius) {}
-    void setParameters(Real half_height, Real radius)
+    explicit SDFCone(Real halfheight, Real radius) : halfheight_(halfheight), radius_(radius) {}
+    void setParameters(Real halfheight, Real radius)
     {
-        half_height_ = half_height;
+        halfheight_ = halfheight;
         radius_ = radius;
     }
 
     Real operator()(const Vec3d &point) const
     {
-        Vec2d p = Vec2d(Vec2d(point.x(), point.z()).norm() - radius_, point.y() + half_height_);
-        Vec2d e = Vec2d(-radius_, 2.0 * half_height_);
+        Vec2d p = Vec2d(Vec2d(point.x(), point.z()).norm() - radius_, point.y() + halfheight_);
+        Vec2d e = Vec2d(-radius_, 2.0 * halfheight_);
         Vec2d q = p - e * std::clamp(p.dot(e) / e.squaredNorm(), 0.0, 1.0);
         Real d = q.norm();
         return SMAX(q.x(), q.y()) > 0.0 ? d : -SMIN(d, p.y());
@@ -151,7 +151,7 @@ class SDFCone
 
     BoundingBox3d findBounds() const
     {
-        return BoundingBox3d(Vec3d(half_height_, radius_, radius_));
+        return BoundingBox3d(Vec3d(halfheight_, radius_, radius_));
     }
 };
 
@@ -230,8 +230,8 @@ class SDFExtend
         input_.setParameters(inputArgs...);
         extend_.setParameters(extendedArgs...);
     }
-    template <typename VecType>
-    Real operator()(const VecType &point) const { return extend_(input_, point); }
+    template <typename Vec3d>
+    Real operator()(const Vec3d &point) const { return extend_(input_, point); }
     BoundingBox3d findBounds() const { return extend_.findBounds(input_); }
 };
 
@@ -242,8 +242,8 @@ class SDFRound
   public:
     explicit SDFRound(Real radius) : radius_(radius) {}
     void setParameters(Real radius) { radius_ = radius; }
-    template <typename InputType, typename VecType>
-    Real operator()(const InputType &input, const VecType &point) const { return input(point) - radius_; }
+    template <typename InputType, typename Vec3d>
+    Real operator()(const InputType &input, const Vec3d &point) const { return input(point) - radius_; }
 
     template <typename InputType>
     auto findBounds(const InputType &input) const
@@ -259,8 +259,8 @@ class SDFOnion
   public:
     explicit SDFOnion(Real radius) : radius_(radius) {}
     void setParameters(Real radius) { radius_ = radius; }
-    template <typename InputType, typename VecType>
-    Real operator()(const InputType &input, const VecType &point) const { return ABS(input(point)) - radius_; }
+    template <typename InputType, typename Vec3d>
+    Real operator()(const InputType &input, const Vec3d &point) const { return ABS(input(point)) - radius_; }
 
     template <typename InputType>
     auto findBounds(const InputType &input) const
@@ -277,8 +277,8 @@ class SDFChamfer
     explicit SDFChamfer(Real chamfer_size) : chamfer_size_(chamfer_size) {}
     void setParameters(Real chamfer_size) { chamfer_size_ = chamfer_size; }
 
-    template <typename InputType, typename VecType>
-    Real operator()(const InputType &input, const VecType &point) const
+    template <typename InputType, typename Vec3d>
+    Real operator()(const InputType &input, const Vec3d &point) const
     {
         Real sd = input(point);
         return sd + chamfer_size_ - sqrt(chamfer_size_ * chamfer_size_ + sd * sd);
@@ -299,8 +299,8 @@ class SDFScale
     explicit SDFScale(Real scale_factor) : scale_factor_(scale_factor) {}
     Real getParameters() const { return scale_factor_; }
     void setParameters(Real scale_factor) { scale_factor_ = scale_factor; }
-    template <typename InputType, typename VecType>
-    Real operator()(const InputType &input, const VecType &point) const
+    template <typename InputType, typename Vec3d>
+    Real operator()(const InputType &input, const Vec3d &point) const
     {
         return input(point / scale_factor_) * scale_factor_;
     }
@@ -326,8 +326,8 @@ class SDFTransform
         transform_ = Transform3d(std::forward<Args>(args)...);
     }
 
-    template <typename InputType, typename VecType>
-    Real operator()(const InputType &input, const VecType &point) const
+    template <typename InputType, typename Vec3d>
+    Real operator()(const InputType &input, const Vec3d &point) const
     {
         Vecd transformed_point = transform_.shiftBaseStationToFrame(point);
         return input(transformed_point);
@@ -354,87 +354,6 @@ class SDFTransform
     }
 };
 
-struct SDFAddition
-{
-    template <typename VecType, typename Input1, typename Input2>
-    Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const
-    {
-        return SMIN(input1(point), input2(point));
-    }
-};
-
-struct SDFSubtraction
-{
-    template <typename VecType, typename Input1, typename Input2>
-    Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const
-    {
-        return SMAX(input1(point), -input2(point));
-    }
-};
-
-struct SDFIntersection
-{
-    template <typename Input1, typename Input2>
-    Real operator()(const Vec2d &point, const Input1 &input1, const Input2 &input2) const
-    {
-        return SMAX(input1(point), input2(point));
-    }
-};
-
-class SDFSmoothAddition
-{
-    Real blend_factor_;
-
-  public:
-    explicit SDFSmoothAddition(Real blend_factor) : blend_factor_(blend_factor) {}
-    Real getParameters() const { return blend_factor_; }
-    void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
-    template <typename VecType, typename Input1, typename Input2>
-    Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const
-    {
-        Real d1 = input1(point);
-        Real d2 = input2(point);
-        Real h = std::clamp(0.5 + 0.5 * (d2 - d1) / blend_factor_, 0.0, 1.0);
-        return d1 * (1.0 - h) + d2 * h - blend_factor_ * h * (1.0 - h);
-    }
-};
-
-class SDFSmoothSubtraction
-{
-    Real blend_factor_;
-
-  public:
-    explicit SDFSmoothSubtraction(Real blend_factor) : blend_factor_(blend_factor) {}
-    Real getParameters() const { return blend_factor_; }
-    void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
-    template <typename VecType, typename Input1, typename Input2>
-    Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const
-    {
-        Real d1 = input1(point);
-        Real d2 = -input2(point);
-        Real h = std::clamp(0.5 + 0.5 * (d2 - d1) / blend_factor_, 0.0, 1.0);
-        return d1 * (1.0 - h) + d2 * h - blend_factor_ * h * (1.0 - h);
-    }
-};
-
-class SDFSmoothIntersection
-{
-    Real blend_factor_;
-
-  public:
-    explicit SDFSmoothIntersection(Real blend_factor) : blend_factor_(blend_factor) {}
-    Real getParameters() const { return blend_factor_; }
-    void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
-    template <typename VecType, typename Input1, typename Input2>
-    Real operator()(const VecType &point, const Input1 &input1, const Input2 &input2) const
-    {
-        Real d1 = input1(point);
-        Real d2 = input2(point);
-        Real h = std::clamp(0.5 + 0.5 * (d2 - d1) / blend_factor_, 0.0, 1.0);
-        return d1 * (1.0 - h) + d2 * h + blend_factor_ * h * (1.0 - h);
-    }
-};
-
 class SDFSymmetry
 {
     int axis_; // 0 for x-axis, 1 for y-axis, 2 for z-axis
@@ -442,10 +361,10 @@ class SDFSymmetry
   public:
     explicit SDFSymmetry(int axis) : axis_(axis) {}
     void setParameters(int axis) { axis_ = axis; }
-    template <typename VecType, typename Input>
-    Real operator()(const Input &input, const VecType &point) const
+    template <typename Vec3d, typename Input>
+    Real operator()(const Input &input, const Vec3d &point) const
     {
-        VecType symmetric_point = point;
+        Vec3d symmetric_point = point;
         symmetric_point[axis_] = ABS(point[axis_]);
         return input(symmetric_point);
     }
@@ -458,16 +377,114 @@ class SDFRepeat
   public:
     explicit SDFRepeat(const Vec3d &period) : period_(period) {}
     void setParameters(const Vec3d &period) { period_ = period; }
-    template <typename VecType, typename Input>
-    Real operator()(const Input &input, const VecType &point) const
+    template <typename Vec3d, typename Input>
+    Real operator()(const Input &input, const Vec3d &point) const
     {
-        VecType repeated_point = point;
+        Vec3d repeated_point = point;
         for (int i = 0; i < 3; ++i)
         {
             if (period_[i] > 0.0)
                 repeated_point[i] = std::fmod(point[i] + 0.5 * period_[i], period_[i]) - 0.5 * period_[i];
         }
         return input(repeated_point);
+    }
+};
+
+template <typename OperationType, typename InputType1, typename InputType2>
+class SDFOperation
+{
+    OperationType operation_;
+    InputType1 input1_;
+    InputType2 input2_;
+
+  public:
+    explicit SDFOperation(const OperationType &operation, const InputType1 &input1, const InputType2 &input2)
+        : operation_(operation), input1_(input1), input2_(input2) {}
+    template <typename... OperationTypeArgs, typename... InputType1Args, typename... InputType2Args>
+    void setParameters(OperationTypeArgs &&...operationArgs, InputType1Args &&...input1Args, InputType2Args &&...input2Args)
+    {
+        operation_.setParameters(std::forward<OperationTypeArgs>(operationArgs)...);
+        input1_.setParameters(std::forward<InputType1Args>(input1Args)...);
+        input2_.setParameters(std::forward<InputType2Args>(input2Args)...);
+    }
+
+    Real operator()(const Vec3d &point) const
+    {
+        return operation_(point, input1_, input2_);
+    }
+
+    auto findBounds() const { return operation_.findBounds(input1_, input2_); }
+};
+
+class SDFSmoothAddition
+{
+    Real blend_factor_;
+
+  public:
+    explicit SDFSmoothAddition(Real blend_factor) : blend_factor_(blend_factor) {}
+    void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
+    template <typename Input1, typename Input2>
+    Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
+    {
+        Real d1 = input1(point);
+        Real d2 = input2(point);
+        Real k = 4.0 * blend_factor_;
+        Real h = SMAX(k - ABS(d1 - d2), 0.0);
+        return SMIN(d1, d2) - h * h * 0.25 / k;
+    }
+
+    template <typename Input1, typename Input2>
+    auto findBounds(const Input1 &input1, const Input2 &input2) const
+    {
+        return input1.findBounds().add(input2.findBounds());
+    }
+};
+
+class SDFSmoothSubtraction
+{
+    Real blend_factor_;
+
+  public:
+    explicit SDFSmoothSubtraction(Real blend_factor) : blend_factor_(blend_factor) {}
+    void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
+    template <typename Input1, typename Input2>
+    Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
+    {
+        Real d1 = -input1(point);
+        Real d2 = input2(point);
+        Real k = 4.0 * blend_factor_;
+        Real h = SMAX(k - ABS(d1 - d2), 0.0);
+        return -(SMIN(d1, d2) - h * h * 0.25 / k);
+    }
+
+    template <typename Input1, typename Input2>
+    auto findBounds(const Input1 &input1, const Input2 &input2) const
+    {
+        return input1.findBounds();
+    }
+};
+
+class SDFSmoothIntersection
+{
+    Real blend_factor_;
+
+  public:
+    explicit SDFSmoothIntersection(Real blend_factor) : blend_factor_(blend_factor) {}
+    void setParameters(Real blend_factor) { blend_factor_ = blend_factor; }
+    template <typename Input1, typename Input2>
+    Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
+    {
+        Real d1 = -input1(point);
+        Real d2 = -input2(point);
+        Real k = 4.0 * blend_factor_;
+        Real h = SMAX(k - ABS(d1 - d2), 0.0);
+        return -(SMIN(d1, d2) - h * h * 0.25 / k);
+    }
+
+    template <typename Input1, typename Input2>
+    auto findBounds(const Input1 &input1, const Input2 &input2) const
+    {
+        return input1.findBounds().intersect(input2.findBounds());
     }
 };
 //----------------------------------------------------------------------
