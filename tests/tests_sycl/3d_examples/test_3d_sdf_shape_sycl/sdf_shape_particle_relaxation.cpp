@@ -30,8 +30,8 @@ int main(int ac, char *av[])
     //	Creating body, materials and particles.
     //----------------------------------------------------------------------
     auto &sdf_shape = sph_system.addShape<SDFShape>("SDFShape");
-    sdf_shape.insertSDFPrimitive("Ball", sdf_operation, GeometricOps::add);
-    sdf_shape.insertSDFPrimitive("CappedCone", sdf_capped_cone, GeometricOps::intersect);
+    sdf_shape.insertSDFPrimitive("Ball", sdf_ball, GeometricOps::add);
+    sdf_shape.insertSDFPrimitive("CappedCone", sdf_extend, GeometricOps::sub);
     auto &my_body = sph_system.addAdaptiveBody<RealBody>(adaptive_near_surface, sdf_shape);
     LevelSetShape &level_set_shape =
         my_body.defineBodyLevelSetShape().correctLevelSetSign().cleanLevelSet().writeLevelSet();
