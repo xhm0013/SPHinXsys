@@ -13,10 +13,10 @@ BoundingBoxd system_domain_bounds(Vec3d::Constant(2.0));
 Real spacing_ref = system_domain_bounds.MinimumDimension() / Real(10);
 AdaptiveNearSurface adaptive_near_surface(spacing_ref, 1.15, 1.0, 4);
 SDFBall sdf_ball(1.0);
-SDFCone sdf_capped_cone(1.0, 1.0);
+SDFCappedCone sdf_capped_cone(1.0, 1.0, 0.5);
 SDFTransform sdf_transform(Transform(Rotation3d(Pi / 4.0, Vec3d::UnitY()), Vec3d(-0.5, 0.0, 0.0)));
 SDFExtend sdf_extend(sdf_capped_cone, sdf_transform);
-SDFOperation sdf_operation(SDFSubtraction(), sdf_ball, sdf_extend);
+SDFOperation sdf_operation(SDFAddition(), sdf_ball, sdf_extend);
 //-----------------------------------------------------------------------------------------------------------
 //	Main program starts here.
 //-----------------------------------------------------------------------------------------------------------
