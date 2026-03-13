@@ -16,7 +16,7 @@ SDFBall sdf_ball(1.0);
 SDFCone sdf_capped_cone(1.0, 1.0);
 SDFTransform sdf_transform(Transform(Rotation3d(Pi / 4.0, Vec3d::UnitY()), Vec3d(-0.5, 0.0, 0.0)));
 SDFExtend sdf_extend(sdf_capped_cone, sdf_transform);
-SDFOperation sdf_operation(SDFSmoothIntersection(3.0 * adaptive_near_surface.MinimumSpacing()), sdf_ball, sdf_extend);
+SDFOperation sdf_operation(SDFSubtraction(), sdf_ball, sdf_extend);
 //-----------------------------------------------------------------------------------------------------------
 //	Main program starts here.
 //-----------------------------------------------------------------------------------------------------------

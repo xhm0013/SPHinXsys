@@ -40,7 +40,7 @@
 namespace SPH
 {
 //----------------------------------------------------------------------
-// Shared geometric primitives for signed distance function definition
+// 3D geometric primitives for signed distance function definition
 //----------------------------------------------------------------------
 class SDFBall
 {
@@ -414,6 +414,51 @@ class SDFOperation
     }
 
     auto findBounds() const { return operation_.findBounds(input1_, input2_); }
+};
+
+struct SDFAddition
+{
+    template <typename Input1, typename Input2>
+    Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
+    {
+        return SMIN(input1(point), input2(point));
+    }
+
+    template <typename Input1, typename Input2>
+    auto findBounds(const Input1 &input1, const Input2 &input2) const
+    {
+        return input1.findBounds().add(input2.findBounds());
+    }
+};
+
+struct SDFSubtraction
+{
+    template <typename Input1, typename Input2>
+    Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
+    {
+        return SMAX(input1(point), -input2(point));
+    }
+
+    template <typename Input1, typename Input2>
+    auto findBounds(const Input1 &input1, const Input2 &input2) const
+    {
+        return input1.findBounds();
+    }
+};
+
+struct SDFIntersection
+{
+    template <typename Input1, typename Input2>
+    Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
+    {
+        return SMAX(input1(point), input2(point));
+    }
+
+    template <typename Input1, typename Input2>
+    auto findBounds(const Input1 &input1, const Input2 &input2) const
+    {
+        return input1.findBounds().intersect(input2.findBounds());
+    }
 };
 
 class SDFSmoothAddition
