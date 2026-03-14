@@ -71,9 +71,11 @@ class SDFShape : public Shape
     EntityManager &getSDFManager() { return sdf_manager_; };
 
     template <typename SDFPrimitive>
-    SDFShape &insertSDFPrimitive(const std::string &primitive_name, const SDFPrimitive &sdf_primitive, const GeometricOps &op)
+    SDFShape &insertSDFPrimitive(
+        const std::string &primitive_name, const SDFPrimitive &sdf_primitive, const GeometricOps &op)
     {
-        SDFEntity<SDFPrimitive> *sdf_entity = sdf_ptrs_.createPtr<SDFEntity<SDFPrimitive>>(primitive_name, sdf_primitive);
+        SDFEntity<SDFPrimitive> *sdf_entity = sdf_ptrs_.createPtr<
+            SDFEntity<SDFPrimitive>>(primitive_name, sdf_primitive);
         sdf_manager_.addEntity<SDFEntity<SDFPrimitive>>(sdf_entity);
         primitives_and_ops_.push_back(SDFPrimitiveAndOp(sdf_entity, op));
         return *this;

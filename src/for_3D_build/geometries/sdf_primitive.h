@@ -112,16 +112,16 @@ class SDFCappedCone
 //----------------------------------------------------------------------
 // Extended geometric primitives
 //----------------------------------------------------------------------
-template <typename InputType, typename ExtendType>
-class SDFExtend
+template <typename InputType, typename ExtensionType>
+class SDFExtension
 {
     InputType input_;
-    ExtendType extend_;
+    ExtensionType extend_;
 
   public:
-    explicit SDFExtend(const InputType &input, const ExtendType &extended);
+    explicit SDFExtension(const InputType &input, const ExtensionType &extension);
     template <typename... InputArgs, typename... ExtendArgs>
-    void setParameters(const InputArgs &...inputArgs, const ExtendArgs &...extendedArgs);
+    void setParameters(const InputArgs &...inputArgs, const ExtendArgs &...extensionArgs);
     Real operator()(const Vec3d &point) const { return extend_(input_, point); }
     BoundingBox3d findBounds() const { return extend_.findBounds(input_); }
 };

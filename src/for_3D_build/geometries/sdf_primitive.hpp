@@ -6,17 +6,17 @@
 namespace SPH
 {
 //=================================================================================================//
-template <typename InputType, typename ExtendType>
-SDFExtend<InputType, ExtendType>::SDFExtend(const InputType &input, const ExtendType &extended)
-    : input_(input), extend_(extended) {}
+template <typename InputType, typename ExtensionType>
+SDFExtension<InputType, ExtensionType>::SDFExtension(const InputType &input, const ExtensionType &extension)
+    : input_(input), extend_(extension) {}
 //=================================================================================================//
-template <typename InputType, typename ExtendType>
+template <typename InputType, typename ExtensionType>
 template <typename... InputArgs, typename... ExtendArgs>
-void SDFExtend<InputType, ExtendType>::setParameters(
-    const InputArgs &...inputArgs, const ExtendArgs &...extendedArgs)
+void SDFExtension<InputType, ExtensionType>::setParameters(
+    const InputArgs &...inputArgs, const ExtendArgs &...extensionArgs)
 {
     input_.setParameters(inputArgs...);
-    extend_.setParameters(extendedArgs...);
+    extend_.setParameters(extensionArgs...);
 }
 //=================================================================================================//
 template <typename InputType>
