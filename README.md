@@ -18,7 +18,7 @@
 
 ## Newest update: Signed-distance Function (SDF) Based Geometrics
 
-By using SDF primitives, extensions and operations, alternative independent modeling can be carried out in SPHinXsys for complex geometrics.
+By using SDF primitives, extensions and operations, alternative independent and meshless modeling can be carried out in SPHinXsys for complex geometrics.
 
 [![geometry-model](https://github.com/Xiangyu-Hu/SPHinXsys-public-files/blob/master/img/sdf_geometry.png)](https://github.com/Xiangyu-Hu/SPHinXsys/blob/master/tests/tests_sycl/3d_examples/test_3d_sdf_shape_sycl/sdf_shape_particle_relaxation.cpp)
 
