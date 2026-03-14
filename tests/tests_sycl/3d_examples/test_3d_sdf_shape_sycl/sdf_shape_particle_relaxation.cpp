@@ -16,7 +16,7 @@ SDFBall sdf_ball(1.0);
 SDFCappedCone sdf_capped_cone(1.0, 1.0, 0.5);
 SDFTransform sdf_transform(Transform(Rotation3d(Pi / 4.0, Vec3d::UnitY()), Vec3d(-0.5, 0.0, 0.0)));
 SDFExtension sdf_extend(sdf_capped_cone, SDFOnion(0.1));
-SDFOperation sdf_operation(SDFIntersection(), sdf_ball, sdf_extend);
+SDFOperation sdf_operation(SDFSmoothIntersection(adaptive_near_surface.MinimumSpacing()), sdf_ball, sdf_extend);
 //-----------------------------------------------------------------------------------------------------------
 //	Main program starts here.
 //-----------------------------------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ int main(int ac, char *av[])
     //----------------------------------------------------------------------
     //	Creating body, materials and particles.
     //----------------------------------------------------------------------
-    auto &sdf_shape = sph_system.addShape<SDFShape>("SDFShape");
+    auto &sdf_shape = sph_system.addShape<SDFShape>(adaptive_near_surface.MinimumSpacing(), "SDFShape");
     sdf_shape.insertSDFPrimitive("Ball", sdf_operation, GeometricOps::add);
     //    sdf_shape.insertSDFPrimitive("CappedCone", sdf_extend, GeometricOps::sub);
     auto &my_body = sph_system.addAdaptiveBody<RealBody>(adaptive_near_surface, sdf_shape);

@@ -64,9 +64,10 @@ using SDFPrimitiveAndOp = std::pair<SDFBase *, GeometricOps>;
 class SDFShape : public Shape
 {
     UniquePtrsKeeper<SDFBase> sdf_ptrs_;
+    Real finest_grid_spacing_;
 
   public:
-    explicit SDFShape(const std::string &shape_name) : Shape(shape_name) {};
+    explicit SDFShape(Real finest_grid_spacing, const std::string &shape_name);
     virtual ~SDFShape() {};
     EntityManager &getSDFManager() { return sdf_manager_; };
 

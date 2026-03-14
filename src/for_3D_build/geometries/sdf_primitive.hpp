@@ -123,7 +123,7 @@ Real SDFSmoothAddition::operator()(
 {
     Real d1 = input1(point);
     Real d2 = input2(point);
-    Real k = 4.0 * smoothing_length_;
+    Real k = 4.0 * finest_grid_spacing_;
     Real h = SMAX(k - ABS(d1 - d2), 0.0);
     return SMIN(d1, d2) - h * h * 0.25 / k;
 }
@@ -140,7 +140,7 @@ Real SDFSmoothSubtraction::operator()(
 {
     Real d1 = -input1(point);
     Real d2 = input2(point);
-    Real k = 4.0 * smoothing_length_;
+    Real k = 4.0 * finest_grid_spacing_;
     Real h = SMAX(k - ABS(d1 - d2), 0.0);
     return -(SMIN(d1, d2) - h * h * 0.25 / k);
 }
@@ -157,7 +157,7 @@ Real SDFSmoothIntersection::operator()(
 {
     Real d1 = -input1(point);
     Real d2 = -input2(point);
-    Real k = 4.0 * smoothing_length_;
+    Real k = 4.0 * finest_grid_spacing_;
     Real h = SMAX(k - ABS(d1 - d2), 0.0);
     return -(SMIN(d1, d2) - h * h * 0.25 / k);
 }

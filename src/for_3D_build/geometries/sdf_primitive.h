@@ -236,11 +236,11 @@ struct SDFIntersection
 
 class SDFSmoothAddition
 {
-    Real smoothing_length_; // scaled with mesh size
+    Real finest_grid_spacing_; // scaled with mesh size
 
   public:
-    explicit SDFSmoothAddition(Real smoothing_length) : smoothing_length_(smoothing_length) {}
-    void setParameters(Real smoothing_length) { smoothing_length_ = smoothing_length; }
+    explicit SDFSmoothAddition(Real finest_grid_spacing) : finest_grid_spacing_(finest_grid_spacing) {}
+    void setParameters(Real finest_grid_spacing) { finest_grid_spacing_ = finest_grid_spacing; }
     template <typename Input1, typename Input2>
     Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const;
     template <typename Input1, typename Input2>
@@ -249,11 +249,11 @@ class SDFSmoothAddition
 
 class SDFSmoothSubtraction
 {
-    Real smoothing_length_; // scaled with mesh size
+    Real finest_grid_spacing_; // scaled with mesh size
 
   public:
-    explicit SDFSmoothSubtraction(Real smoothing_length) : smoothing_length_(smoothing_length) {}
-    void setParameters(Real smoothing_length) { smoothing_length_ = smoothing_length; }
+    explicit SDFSmoothSubtraction(Real finest_grid_spacing) : finest_grid_spacing_(finest_grid_spacing) {}
+    void setParameters(Real finest_grid_spacing) { finest_grid_spacing_ = finest_grid_spacing; }
     template <typename Input1, typename Input2>
     Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const;
     template <typename Input1, typename Input2>
@@ -262,11 +262,11 @@ class SDFSmoothSubtraction
 
 class SDFSmoothIntersection
 {
-    Real smoothing_length_; // scaled with mesh size
+    Real finest_grid_spacing_; // scaled with mesh size
 
   public:
-    explicit SDFSmoothIntersection(Real smoothing_length) : smoothing_length_(smoothing_length) {}
-    void setParameters(Real smoothing_length) { smoothing_length_ = smoothing_length; }
+    explicit SDFSmoothIntersection(Real finest_grid_spacing) : finest_grid_spacing_(finest_grid_spacing) {}
+    void setParameters(Real finest_grid_spacing) { finest_grid_spacing_ = finest_grid_spacing; }
     template <typename Input1, typename Input2>
     Real operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const;
     template <typename Input1, typename Input2>

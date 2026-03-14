@@ -3,6 +3,9 @@
 namespace SPH
 {
 //=================================================================================================//
+SDFShape::SDFShape(Real finest_grid_spacing, const std::string &shape_name)
+    : Shape(shape_name), finest_grid_spacing_(finest_grid_spacing) {}
+//=================================================================================================//
 bool SDFShape::checkContain(const Vec3d &probe_point, bool BOUNDARY_INCLUDED)
 {
     return probeSignedDistance(probe_point) <= (BOUNDARY_INCLUDED ? 0.0 : -SqrtEps);
@@ -37,7 +40,7 @@ Real SDFShape::probeSignedDistance(const Vec3d &probe_point)
 //=================================================================================================//
 Vecd SDFShape::probeNormalDirection(const Vec3d &probe_point)
 {
-    Real eps = 1e-4;
+    Real eps = 0.01 * finest_grid_spacing_;
     Vecd normal_direction;
     for (int i = 0; i != Dimensions; ++i)
     {
@@ -52,7 +55,7 @@ Vecd SDFShape::probeNormalDirection(const Vec3d &probe_point)
     return normal_direction.normalized();
 }
 //=================================================================================================//
-BoundingBoxd SDFShape::findBounds() // only add and intersect operations are considered. 
+BoundingBoxd SDFShape::findBounds() // only add and intersect operations are considered.
 {
     BoundingBoxd bounding_box;
     for (const auto &primitive_and_op : primitives_and_ops_)
