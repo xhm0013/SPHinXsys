@@ -31,7 +31,9 @@
 #define SDF_SHAPE_H
 
 #include "base_geometry.h"
-#include "sdf_primitive.hpp"
+#include "sdf_primitive.h"
+#include "sdf_extension.hpp"
+#include "sdf_operation.hpp"
 
 namespace SPH
 {
