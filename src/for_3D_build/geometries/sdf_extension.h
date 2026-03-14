@@ -76,19 +76,6 @@ class SDFOnion
     auto findBounds(const InputType &input) const { return input.findBounds().expand(SMAX(radius_, 0.0)); }
 };
 
-class SDFChamfer
-{
-    Real chamfer_size_;
-
-  public:
-    explicit SDFChamfer(Real chamfer_size) : chamfer_size_(chamfer_size) {}
-    void setParameters(Real chamfer_size) { chamfer_size_ = chamfer_size; }
-    template <typename InputType>
-    Real operator()(const InputType &input, const Vec3d &point) const;
-    template <typename InputType>
-    auto findBounds(const InputType &input) const;
-};
-
 class SDFScale
 {
     Real scale_factor_;

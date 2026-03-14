@@ -8,15 +8,18 @@
 
 #include "sphinxsys.h"
 using namespace SPH;
-
+//-----------------------------------------------------------------------------------------------------------
+//	Geometric elements.
+//-----------------------------------------------------------------------------------------------------------
 BoundingBoxd system_domain_bounds(Vec3d::Constant(2.0));
 Real spacing_ref = system_domain_bounds.MinimumDimension() / Real(10);
 AdaptiveNearSurface adaptive_near_surface(spacing_ref, 1.15, 1.0, 4);
-SDFBall sdf_ball(1.0);
+SDFBall sdf_ball(0.8);
 SDFCappedCone sdf_capped_cone(1.0, 1.0, 0.5);
-SDFTransform sdf_transform(Transform(Rotation3d(Pi / 4.0, Vec3d::UnitY()), Vec3d(-0.5, 0.0, 0.0)));
-SDFExtension sdf_extend(sdf_capped_cone, SDFOnion(0.1));
-SDFOperation sdf_operation(SDFSmoothIntersection(adaptive_near_surface.MinimumSpacing()), sdf_ball, sdf_extend);
+SDFTransform sdf_transform(Rotation3d(Pi / 4.0, Vec3d::UnitY()), Vec3d(-0.5, 0.0, 0.0));
+SDFExtension sdf_extend(sdf_capped_cone, sdf_transform);
+SDFSmoothAddition sdf_addition(adaptive_near_surface.MinimumSpacing());
+SDFOperation sdf_operation(sdf_addition, sdf_ball, sdf_extend);
 //-----------------------------------------------------------------------------------------------------------
 //	Main program starts here.
 //-----------------------------------------------------------------------------------------------------------
@@ -32,7 +35,6 @@ int main(int ac, char *av[])
     //----------------------------------------------------------------------
     auto &sdf_shape = sph_system.addShape<SDFShape>(adaptive_near_surface.MinimumSpacing(), "SDFShape");
     sdf_shape.insertSDFPrimitive("Ball", sdf_operation, GeometricOps::add);
-    //    sdf_shape.insertSDFPrimitive("CappedCone", sdf_extend, GeometricOps::sub);
     auto &my_body = sph_system.addAdaptiveBody<RealBody>(adaptive_near_surface, sdf_shape);
     LevelSetShape &level_set_shape = my_body.defineBodyLevelSetShape().writeLevelSet();
     my_body.generateParticles<BaseParticles, Lattice>();

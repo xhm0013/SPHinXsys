@@ -20,19 +20,6 @@ void SDFExtension<InputType, ExtensionType>::setParameters(
 }
 //=================================================================================================//
 template <typename InputType>
-Real SDFChamfer::operator()(const InputType &input, const Vec3d &point) const
-{
-    Real sd = input(point);
-    return sd + chamfer_size_ - sqrt(chamfer_size_ * chamfer_size_ + sd * sd);
-}
-//=================================================================================================//
-template <typename InputType>
-auto SDFChamfer::findBounds(const InputType &input) const
-{
-    return input.findBounds().expand(chamfer_size_);
-}
-//=================================================================================================//
-template <typename InputType>
 Real SDFScale::operator()(const InputType &input, const Vec3d &point) const
 {
     return input(point / scale_factor_) * scale_factor_;
