@@ -6,7 +6,7 @@ namespace SPH
 Real SDFBox::operator()(const Vec3d &point) const
 {
     Vec3d d = point.cwiseAbs() - halfsize_;
-    return d.cwiseMax(Vec3d::Zero()).norm() + SMIN(d.maxCoeff(), 0.0);
+    return d.cwiseMax(Vec3d::Zero()).norm() + SMIN(d.maxCoeff(), Real(0));
 }
 //=================================================================================================//
 void SDFCylinder::setParameters(Real halflength, Real radius)
@@ -62,7 +62,7 @@ Real SDFCone::operator()(const Vec3d &point) const
 {
     Vec2d p = Vec2d(Vec2d(point.x(), point.z()).norm() - radius_, point.y() + halfheight_);
     Vec2d e = Vec2d(-radius_, 2.0 * halfheight_);
-    Vec2d q = p - e * std::clamp(p.dot(e) / e.squaredNorm(), 0.0, 1.0);
+    Vec2d q = p - e * std::clamp(p.dot(e) / e.squaredNorm(), Real(0), Real(1));
     Real d = q.norm();
     return SMAX(q.x(), q.y()) > 0.0 ? d : -SMIN(d, p.y());
 }
@@ -85,7 +85,7 @@ Real SDFCappedCone::operator()(const Vec3d &point) const
     Vec2d k1 = Vec2d(radius2_, halfheight_);
     Vec2d k2 = Vec2d(radius2_ - radius1_, 2.0 * halfheight_);
     Vec2d ca = Vec2d(q.x() - SMIN(q.x(), (q.y() < 0.0) ? radius1_ : radius2_), ABS(q.y()) - halfheight_);
-    Vec2d cb = q - k1 + k2 * std::clamp((k1 - q).dot(k2) / k2.squaredNorm(), 0.0, 1.0);
+    Vec2d cb = q - k1 + k2 * std::clamp((k1 - q).dot(k2) / k2.squaredNorm(), Real(0), Real(1));
     float s = (cb.x() < 0.0 && ca.y() < 0.0) ? -1.0 : 1.0;
     return s * std::sqrt(SMIN(ca.squaredNorm(), cb.squaredNorm()));
 }

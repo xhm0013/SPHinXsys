@@ -6,16 +6,6 @@
 namespace SPH
 {
 //=================================================================================================//
-template <typename OperationType, typename InputType1, typename InputType2>
-template <typename... OperationTypeArgs, typename... InputType1Args, typename... InputType2Args>
-void SDFOperation<OperationType, InputType1, InputType2>::setParameters(
-    OperationTypeArgs &&...operationArgs, InputType1Args &&...input1Args, InputType2Args &&...input2Args)
-{
-    operation_.setParameters(std::forward<OperationTypeArgs>(operationArgs)...);
-    input1_.setParameters(std::forward<InputType1Args>(input1Args)...);
-    input2_.setParameters(std::forward<InputType2Args>(input2Args)...);
-}
-//=================================================================================================//
 template <typename Input1, typename Input2>
 Real SDFAddition::operator()(const Vec3d &point, const Input1 &input1, const Input2 &input2) const
 {
@@ -53,7 +43,7 @@ Real SDFSmoothAddition::operator()(
     Real d1 = input1(point);
     Real d2 = input2(point);
     Real k = 4.0 * finest_grid_spacing_;
-    Real h = SMAX(k - ABS(d1 - d2), 0.0);
+    Real h = SMAX(k - ABS(d1 - d2), Real(0));
     return SMIN(d1, d2) - h * h * 0.25 / k;
 }
 //=================================================================================================//
@@ -70,7 +60,7 @@ Real SDFSmoothSubtraction::operator()(
     Real d1 = -input1(point);
     Real d2 = input2(point);
     Real k = 4.0 * finest_grid_spacing_;
-    Real h = SMAX(k - ABS(d1 - d2), 0.0);
+    Real h = SMAX(k - ABS(d1 - d2), Real(0));
     return -(SMIN(d1, d2) - h * h * 0.25 / k);
 }
 //=================================================================================================//
@@ -87,7 +77,7 @@ Real SDFSmoothIntersection::operator()(
     Real d1 = -input1(point);
     Real d2 = -input2(point);
     Real k = 4.0 * finest_grid_spacing_;
-    Real h = SMAX(k - ABS(d1 - d2), 0.0);
+    Real h = SMAX(k - ABS(d1 - d2), Real(0));
     return -(SMIN(d1, d2) - h * h * 0.25 / k);
 }
 //=================================================================================================//

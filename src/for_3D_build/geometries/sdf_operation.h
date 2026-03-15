@@ -46,8 +46,9 @@ class SDFOperation
   public:
     explicit SDFOperation(const OperationType &operation, const InputType1 &input1, const InputType2 &input2)
         : operation_(operation), input1_(input1), input2_(input2) {}
-    template <typename... OperationTypeArgs, typename... InputType1Args, typename... InputType2Args>
-    void setParameters(OperationTypeArgs &&...operationArgs, InputType1Args &&...input1Args, InputType2Args &&...input2Args);
+    OperationType &getOpertion() { return operation_; }
+    InputType1 &getInput1() { return input1_; }
+    InputType2 &getInput2() { return input2_; }
     Real operator()(const Vec3d &point) const { return operation_(point, input1_, input2_); }
     auto findBounds() const { return operation_.findBounds(input1_, input2_); }
 };

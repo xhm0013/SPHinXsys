@@ -8,16 +8,7 @@ namespace SPH
 //=================================================================================================//
 template <typename InputType, typename ExtensionType>
 SDFExtension<InputType, ExtensionType>::SDFExtension(const InputType &input, const ExtensionType &extension)
-    : input_(input), extend_(extension) {}
-//=================================================================================================//
-template <typename InputType, typename ExtensionType>
-template <typename... InputArgs, typename... ExtendArgs>
-void SDFExtension<InputType, ExtensionType>::setParameters(
-    const InputArgs &...inputArgs, const ExtendArgs &...extensionArgs)
-{
-    input_.setParameters(inputArgs...);
-    extend_.setParameters(extensionArgs...);
-}
+    : input_(input), extension_(extension) {}
 //=================================================================================================//
 template <typename InputType>
 Real SDFScale::operator()(const InputType &input, const Vec3d &point) const

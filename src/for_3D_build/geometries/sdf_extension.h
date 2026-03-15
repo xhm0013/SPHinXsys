@@ -40,14 +40,14 @@ template <typename InputType, typename ExtensionType>
 class SDFExtension
 {
     InputType input_;
-    ExtensionType extend_;
+    ExtensionType extension_;
 
   public:
     explicit SDFExtension(const InputType &input, const ExtensionType &extension);
-    template <typename... InputArgs, typename... ExtendArgs>
-    void setParameters(const InputArgs &...inputArgs, const ExtendArgs &...extensionArgs);
-    Real operator()(const Vec3d &point) const { return extend_(input_, point); }
-    BoundingBox3d findBounds() const { return extend_.findBounds(input_); }
+    ExtensionType &getExtension() { return extension_; }
+    InputType &getInput() { return input_; }
+    Real operator()(const Vec3d &point) const { return extension_(input_, point); }
+    BoundingBox3d findBounds() const { return extension_.findBounds(input_); }
 };
 
 class SDFRound
@@ -73,7 +73,7 @@ class SDFOnion
     template <typename InputType>
     Real operator()(const InputType &input, const Vec3d &point) const { return ABS(input(point)) - radius_; }
     template <typename InputType>
-    auto findBounds(const InputType &input) const { return input.findBounds().expand(SMAX(radius_, 0.0)); }
+    auto findBounds(const InputType &input) const { return input.findBounds().expand(SMAX(radius_, Real(0))); }
 };
 
 class SDFScale
