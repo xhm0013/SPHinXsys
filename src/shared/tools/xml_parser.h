@@ -56,7 +56,7 @@ template <typename DataType>
 std::string DataToString(const DataType &value)
 {
     std::ostringstream out;
-    out.precision(15);
+    out.precision(SPHINXSYS_OUTPUT_PRECISION);
     out << std::fixed << value;
     return std::move(out).str();
     // return std::to_string(value);
@@ -66,7 +66,8 @@ template <int DIMENSION, auto... Rest>
 std::string DataToString(const Eigen::Matrix<Real, DIMENSION, Rest...> &value)
 {
     std::stringstream ss;
-    ss << value.format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", ""));
+    ss << std::fixed;
+    ss << value.format(Eigen::IOFormat(SPHINXSYS_OUTPUT_PRECISION, Eigen::DontAlignCols, ", ", ", ", "", "", "", ""));
     return ss.str();
 }
 
@@ -74,7 +75,8 @@ template <int DIMENSION, auto... Rest>
 std::string DataToString(const Eigen::Matrix<Real, DIMENSION, DIMENSION, Rest...> &value)
 {
     std::stringstream ss;
-    ss << value.format(Eigen::IOFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", ""));
+    ss << std::fixed;
+    ss << value.format(Eigen::IOFormat(SPHINXSYS_OUTPUT_PRECISION, Eigen::DontAlignCols, ", ", ", ", "", "", "", ""));
     return ss.str();
 }
 

@@ -17,6 +17,7 @@ option(SPHINXSYS_MODULE_OPENCASCADE "Build extension relying on OpenCASCADE" OFF
 option(SPHINXSYS_USE_VTK "Build using VTK library for writing VTP/VTU files" OFF)
 option(SPHINXSYS_USE_SYCL "Build using SYCL acceleration or not" OFF)
 option(SPHINXSYS_USE_ONEDPL_SORTING "Build One DPL for particle sorting" ON)
+set(SPHINXSYS_OUTPUT_PRECISION 15 CACHE STRING "Number of decimal places for floating-point values in reload/restart files")
 
 # ------ Global properties (Some cannot be set on INTERFACE targets)
 set(CMAKE_VERBOSE_MAKEFILE OFF CACHE BOOL "Enable verbose compilation commands for Makefile and Ninja" FORCE) # Extra fluff needed for Ninja: https://github.com/ninja-build/ninja/issues/900
@@ -68,6 +69,7 @@ endif()
 target_compile_definitions(sphinxsys_core INTERFACE SPHINXSYS_USE_SYCL=$<BOOL:${SPHINXSYS_USE_SYCL}>)
 target_compile_definitions(sphinxsys_core INTERFACE SPHINXSYS_USE_FLOAT=$<BOOL:${SPHINXSYS_USE_FLOAT}>)
 target_compile_definitions(sphinxsys_core INTERFACE SPHINXSYS_USE_ONEDPL_SORTING=$<BOOL:${SPHINXSYS_USE_ONEDPL_SORTING}>)
+target_compile_definitions(sphinxsys_core INTERFACE SPHINXSYS_OUTPUT_PRECISION=${SPHINXSYS_OUTPUT_PRECISION})
 
 # ------ Dependencies
 # ## SIMD flags
