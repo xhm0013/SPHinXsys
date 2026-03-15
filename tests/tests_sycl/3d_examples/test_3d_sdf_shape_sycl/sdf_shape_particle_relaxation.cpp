@@ -13,7 +13,7 @@ using namespace SPH;
 //-----------------------------------------------------------------------------------------------------------
 BoundingBoxd system_domain_bounds(Vec3d::Constant(2.0));
 Real spacing_ref = system_domain_bounds.MinimumDimension() / Real(10);
-AdaptiveNearSurface adaptive_near_surface(spacing_ref, 1.15, 1.0, 4);
+AdaptiveNearSurface adaptive_near_surface(spacing_ref, 1.15, 1.0, 3);
 SDFBall sdf_ball(0.8);
 SDFCappedCone sdf_capped_cone(1.0, 1.0, 0.5);
 SDFTransform sdf_transform(Rotation3d(Pi / 4.0, Vec3d::UnitY()), Vec3d(-0.5, 0.0, 0.0));
