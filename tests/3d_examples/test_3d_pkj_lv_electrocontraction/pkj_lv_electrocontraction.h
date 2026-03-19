@@ -238,11 +238,7 @@ class ApplyStimulusCurrentToMyocardium : public LocalDynamics
 StdVec<Vecd> createObservationPoints()
 {
     StdVec<Vecd> observation_points;
-    observation_points.push_back(Vecd(-45.0 * length_scale, -30.0 * length_scale, 0.0));
-    observation_points.push_back(Vecd(0.0, -30.0 * length_scale, 26.0 * length_scale));
-    observation_points.push_back(Vecd(-30.0 * length_scale, -50.0 * length_scale, 0.0));
-    observation_points.push_back(Vecd(0.0, -50.0 * length_scale, 20.0 * length_scale));
-    observation_points.push_back(Vecd(0.0, -70.0 * length_scale, 0.0));
+    observation_points.push_back(Vecd(-3.36391, -4.40308, -71.0863));
     return observation_points;
 };
 

@@ -35,7 +35,6 @@ int main(int ac, char *av[])
     Heart triangle_mesh_heart_model("HeartModel");
     LevelSetShape level_set_heart_model(par_ck, sph_system, SPHAdaptation(dp_0), triangle_mesh_heart_model);
     level_set_heart_model.correctLevelSetSign().writeLevelSet();
-    std::cout << "I am here 0! " << "\n";
     //----------------------------------------------------------------------
     //	SPH Particle relaxation section
     //----------------------------------------------------------------------
@@ -43,7 +42,6 @@ int main(int ac, char *av[])
     if (sph_system.RunParticleRelaxation())
     {
         SolidBody heart_model(sph_system, level_set_heart_model);
-        std::cout << "I am here 1! " << "\n";
         heart_model.defineClosure<LocallyOrthotropicMuscle, IsotropicDiffusion>(
             ConstructArgs(rho0_s, bulk_modulus, fiber_direction, sheet_direction, a0, b0),
             ConstructArgs(diffusion_species_name, diffusion_coeff));
@@ -66,7 +64,6 @@ int main(int ac, char *av[])
         //----------------------------------------------------------------------
         // From here the time stepping begins.
         //----------------------------------------------------------------------
-        std::cout << "I am here 2! " << "\n";
         int ite = 0;
         int relax_step = 1000;
         while (ite < relax_step)
@@ -79,7 +76,6 @@ int main(int ac, char *av[])
                 write_heart_model_state_to_vtp.writeToFile(ite);
             }
         }
-        std::cout << "I am here 3! " << "\n";
         //----------------------------------------------------------------------
         //	Diffusion process to initialize fiber direction
         //----------------------------------------------------------------------
@@ -207,7 +203,10 @@ int main(int ac, char *av[])
     write_states.addToWrite<Real>(physiology_heart, "ActiveContractionStress");
     write_states.addToWrite<Real>(mechanics_heart, "ActiveContractionStress");
     ObservedQuantityRecording<Real> write_voltage("Voltage", voltage_observer_contact);
-    ObservedQuantityRecording<Vecd> write_displacement("Position", myocardium_observer_contact);
+    RegressionTestDynamicTimeWarping<ObservedQuantityRecording<Vecd>>
+        write_displacement("Position", myocardium_observer_contact);
+    BodyStatesRecordingToVtp write_myocardium_observer(myocardium_observer);
+    write_myocardium_observer.writeToFile(); // to check where are the observation points
     /**
      * Pre-simulation.
      */
@@ -217,10 +216,9 @@ int main(int ac, char *av[])
     correct_configuration_contraction.exec();
     correct_kernel_weights_for_interpolation.exec();
     /**Output global basic parameters. */
-    write_states.writeToFile(0);
+    write_states.writeToFile();
     write_voltage.writeToFile(0);
     write_displacement.writeToFile(0);
-    write_states.writeToFile(0);
     /**
      * main loop.
      */
@@ -350,6 +348,15 @@ int main(int ac, char *av[])
     TimeInterval tt;
     tt = t4 - t1 - interval;
     std::cout << "Total wall time for computation: " << tt.seconds() << " seconds." << std::endl;
+
+    if (sph_system.GenerateRegressionData())
+    {
+        write_displacement.generateDataBase(1.0e-2);
+    }
+    else
+    {
+        write_displacement.testResult();
+    }
 
     return 0;
 }
