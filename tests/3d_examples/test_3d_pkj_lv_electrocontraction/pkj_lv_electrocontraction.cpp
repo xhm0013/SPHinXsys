@@ -205,8 +205,6 @@ int main(int ac, char *av[])
     ObservedQuantityRecording<Real> write_voltage("Voltage", voltage_observer_contact);
     RegressionTestDynamicTimeWarping<ObservedQuantityRecording<Vecd>>
         write_displacement("Position", myocardium_observer_contact);
-    BodyStatesRecordingToVtp write_myocardium_observer(myocardium_observer);
-    write_myocardium_observer.writeToFile(); // to check where are the observation points
     /**
      * Pre-simulation.
      */

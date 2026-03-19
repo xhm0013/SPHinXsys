@@ -4,12 +4,13 @@
 #include "base_body.h"
 #include "base_particles.h"
 
+#include "io_vtk.h"
 namespace SPH
 {
 //=================================================================================================//
 ParticleGenerator<BaseParticles>::
     ParticleGenerator(SPHBody &sph_body, BaseParticles &base_particles)
-    : base_particles_(base_particles),
+    : sph_body_(sph_body), base_particles_(base_particles),
       particle_spacing_ref_(sph_body.getSPHAdaptation().ReferenceSpacing()) {}
 //=================================================================================================//
 void ParticleGenerator<BaseParticles>::addParticlePosition(const Vecd &position)
@@ -79,6 +80,12 @@ void ParticleGenerator<ObserverParticles>::prepareGeometricData()
     {
         addPositionAndVolumetricMeasure(positions_[i], 0.0);
     }
+}
+//=================================================================================================//
+ParticleGenerator<ObserverParticles>::~ParticleGenerator()
+{
+    BodyStatesRecordingToVtp write_observer(sph_body_);
+    write_observer.writeToFile();
 }
 //=================================================================================================//
 } // namespace SPH
