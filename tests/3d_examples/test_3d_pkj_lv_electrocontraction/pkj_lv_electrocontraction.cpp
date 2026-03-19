@@ -85,6 +85,7 @@ int main(int ac, char *av[])
         SimpleDynamics<ComputeFiberAndSheetDirections> compute_fiber_sheet(heart_model, diffusion_species_name);
         BodySurface surface_part(heart_model);
         SimpleDynamics<DiffusionBCs> impose_diffusion_bc(surface_part, diffusion_species_name);
+        heart_model_normal.exec();
         impose_diffusion_bc.exec();
         write_heart_model_state_to_vtp.addToWrite<Real>(heart_model, diffusion_species_name);
         write_heart_model_state_to_vtp.writeToFile(ite);
