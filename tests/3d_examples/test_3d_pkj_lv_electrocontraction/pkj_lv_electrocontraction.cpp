@@ -81,6 +81,7 @@ int main(int ac, char *av[])
         //----------------------------------------------------------------------
         GetDiffusionTimeStepSize get_time_step_size(heart_model);
         FiberDirectionDiffusionRelaxation diffusion_relaxation(heart_model_inner);
+        SimpleDynamics<NormalDirectionFromBodyShape> heart_model_normal(heart_model);
         SimpleDynamics<ComputeFiberAndSheetDirections> compute_fiber_sheet(heart_model, diffusion_species_name);
         BodySurface surface_part(heart_model);
         SimpleDynamics<DiffusionBCs> impose_diffusion_bc(surface_part, diffusion_species_name);
