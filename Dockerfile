@@ -1,20 +1,25 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 ARG build_with_dependencies_source=0
 ARG SPH_ONLY_STATIC_BUILD=0
+ARG build_jobs=$(( $(nproc) / 2 > 0 ? $(nproc) / 2 : 1 ))
 
 ENV TZ=Europe/Berlin
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN apt-get update && apt-get install -y \ 
+RUN apt-get update && apt-get install -y \
     apt-utils \
     build-essential \
+    git \
     cmake \
     libgtest-dev \
     libtbb-dev \
     libboost-all-dev \
     libsimbody-dev \
-    libsimbody3.6 \      
+    libsimbody3.6 \
+    libeigen3-dev \
+    libspdlog-dev \
+    pybind11-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -25,11 +30,8 @@ ENV SIMBODY_HOME=/usr
 COPY ./ /home/SPHinXsys/
 WORKDIR /home/SPHinXsys
 
-RUN cd /usr/src/gtest
-    sudo cmake CMakeLists.txt
-    sudo make
-    cd /home/SPHinXsys
+RUN cd /usr/src/googletest && cmake . -DCMAKE_POSITION_INDEPENDENT_CODE=ON && make && make install
 
 RUN git submodule update --init
 RUN rm -rf build
-RUN mkdir build && cd build && cmake .. -DBUILD_WITH_DEPENDENCIES_SOURCE=${build_with_dependencies_source} -DSTATIC_BUILD=${SPH_ONLY_STATIC_BUILD} && make -j$(nproc)
+RUN bash -c "mkdir build && cd build && cmake .. -DBUILD_WITH_DEPENDENCIES_SOURCE=${build_with_dependencies_source} -DSTATIC_BUILD=${SPH_ONLY_STATIC_BUILD} && make -j${build_jobs}"
