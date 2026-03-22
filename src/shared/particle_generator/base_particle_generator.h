@@ -59,6 +59,7 @@ class ParticleGenerator<BaseParticles>
     void generateParticlesWithGeometricVariables();
 
   protected:
+    SPHBody &sph_body_;
     BaseParticles &base_particles_;
     Real particle_spacing_ref_;
     StdVec<Vecd> position_;           // prepared geometric data: particle position
@@ -96,7 +97,7 @@ class ParticleGenerator<ObserverParticles> : public ParticleGenerator<BasePartic
   public:
     ParticleGenerator(SPHBody &sph_body, BaseParticles &base_particles, const StdVec<Vecd> &positions);
     ParticleGenerator(SPHBody &sph_body, BaseParticles &base_particles, TriangleMeshShape &triangle_mesh_shape);
-    virtual ~ParticleGenerator() {};
+    virtual ~ParticleGenerator();
     virtual void prepareGeometricData() override;
 
   protected:
